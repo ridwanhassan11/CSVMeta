@@ -1,95 +1,98 @@
 "use client";
 
-type Props = {
-  loading: boolean;
-  title: string;
-  description: string;
-  keywords: string[];
-};
+import type { ImageItem } from "../app/page";
 
-export default function ResultCard({
-  loading,
-  title,
-  description,
-  keywords,
-}: Props) {
-  return (
-    <div className="mt-8 rounded-3xl border border-slate-800 bg-[#121a2d] p-6">
+type Props = { image: ImageItem | null };
 
-      <h2 className="mb-4 text-xl font-bold">
-        Metadata Result
-      </h2>
-
-      {loading && (
-        <p className="text-slate-400">
-          Generating metadata...
-        </p>
-      )}
-
-      {!loading && (
-        <div>
-
-          <div className="mb-5">
-            <label className="text-slate-400">
-              Title
-            </label>
-
-            <textarea
-              value={title}
-              readOnly
-              className="mt-2 w-full rounded-xl bg-[#0b1220] p-4"
-            />
-          </div>
-
-          <div className="mb-5">
-            <label className="text-slate-400">
-              Description
-            </label>
-
-            <textarea
-              value={description}
-              readOnly
-              className="mt-2 w-full rounded-xl bg-[#0b1220] p-4"
-            />
-          </div>
-
-          <div className="mb-5">
-            <label className="text-slate-400">
-              Keywords ({keywords.length})
-            </label>
-
-            <textarea
-              value={keywords.join(", ")}
-              readOnly
-              className="mt-2 w-full rounded-xl bg-[#0b1220] p-4"
-            />
-          </div>
-
-          <div className="mt-5 flex gap-4">
-
-            <button
-              onClick={() => navigator.clipboard.writeText(title)}
-              className="rounded-xl bg-blue-600 px-5 py-3 hover:bg-blue-500"
-            >
-              Copy Title
-            </button>
-
-            <button
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  keywords.join(", ")
-                )
-              }
-              className="rounded-xl bg-blue-600 px-5 py-3 hover:bg-blue-500"
-            >
-              Copy Keywords
-            </button>
-
-          </div>
-
+export default function ResultCard({ image }: Props) {
+  if (!image) {
+    return (
+      <div className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-16 text-center transition-colors">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-xl">
+          🖼
         </div>
-      )}
+        <p className="mt-4 font-medium text-slate-700 dark:text-slate-300">
+          Your generated results will appear here.
+        </p>
+        <p className="mt-1 text-sm text-slate-400">
+          Upload some files and click &quot;Generate All&quot; to get started.
+        </p>
+      </div>
+    );
+  }
 
+  if (image.status === "error") {
+    return (
+      <div className="mt-6 rounded-3xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 p-6">
+        <p className="font-semibold text-rose-700 dark:text-rose-400">{image.file.name}</p>
+        <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{image.error}</p>
+      </div>
+    );
+  }
+
+  if (image.status !== "done") {
+    return (
+      <div className="mt-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <p className="font-semibold text-slate-900 dark:text-white">{image.file.name}</p>
+        <p className="mt-1 text-sm text-slate-400">Generating metadata...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 transition-colors">
+      <div className="flex items-center gap-3">
+        <img
+          src={image.previewUrl}
+          className="h-14 w-14 rounded-xl object-cover"
+          alt={image.file.name}
+        />
+        <div>
+          <p className="font-semibold text-slate-900 dark:text-white">{image.file.name}</p>
+          <p className="text-xs text-slate-400">Ready</p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-4">
+        <div>
+          <p className="text-xs font-semibold text-slate-400">TITLE</p>
+          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">{image.title}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-400">DESCRIPTION</p>
+          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">{image.description}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-400">KEYWORDS</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {image.keywords?.map((k) => (
+              <span
+                key={k}
+                className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300"
+              >
+                {k}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 flex gap-3">
+        <button
+          onClick={() => navigator.clipboard.writeText(image.title || "")}
+          className="rounded-xl bg-slate-100 dark:bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+        >
+          Copy Title
+        </button>
+        <button
+          onClick={() =>
+            navigator.clipboard.writeText(image.keywords?.join(", ") || "")
+          }
+          className="rounded-xl bg-slate-900 dark:bg-white px-5 py-2.5 text-sm font-medium text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200"
+        >
+          Copy Keywords
+        </button>
+      </div>
     </div>
   );
 }
