@@ -11,8 +11,8 @@ export default function Sidebar({ active = "Dashboard" }: { active?: NavItem }) 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col transition-colors">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold">
-          C
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
+          <img src="/logo-icon.png" alt="CSVMeta logo" className="h-full w-full object-contain" />
         </div>
         <div>
           <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">CSVMeta</h1>
