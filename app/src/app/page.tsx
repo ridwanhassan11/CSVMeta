@@ -16,12 +16,54 @@ export type ImageItem = {
   title?: string;
   description?: string;
   keywords?: string[];
-  prompt?: string; // 👈 নতুন
+  prompt?: string;
   error?: string;
 };
 
 function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// 👇 ব্রাউজারেই ইমেজ resize/compress করার ফাংশন
+async function compressImage(file: File, maxDimension = 1568, quality = 0.8): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+    };
+
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxDimension) {
+        height = (height / width) * maxDimension;
+        width = maxDimension;
+      } else if (height > maxDimension) {
+        width = (width / height) * maxDimension;
+        height = maxDimension;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error("Compression failed"));
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+
+    img.onerror = reject;
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function Home() {
@@ -41,12 +83,12 @@ export default function Home() {
   const [settings, setSettings] = useState<GenerationSettings>({
     provider: "gemini",
     geminiModel: "gemini-3.5-flash",
-    mode: "metadata", // 👈 নতুন
+    mode: "metadata",
     platform: "adobe-stock",
     titleLength: 150,
     keywordsCount: 45,
     extraInstructions: "",
-    parallel: false,
+    parallel: false, // 👈 ১০০ ইমেজের জন্য এটা false (sequential) রাখাই নিরাপদ
   });
 
   function updateSettings(patch: Partial<GenerationSettings>) {
@@ -87,7 +129,6 @@ export default function Home() {
       updateImage(img.id, { status: "loading", error: undefined });
 
       const activeKey = savedKeys[settings.provider]?.[0];
-
       if (!activeKey) {
         updateImage(img.id, {
           status: "error",
@@ -96,12 +137,15 @@ export default function Home() {
         return;
       }
 
+      // 👇 পাঠানোর আগে compress
+      const compressedFile = await compressImage(img.file);
+
       const formData = new FormData();
-      formData.append("file", img.file);
+      formData.append("file", compressedFile);
       formData.append("provider", settings.provider);
       formData.append("geminiModel", settings.geminiModel);
       formData.append("apiKey", activeKey);
-      formData.append("mode", settings.mode); // 👈 নতুন
+      formData.append("mode", settings.mode);
       formData.append("platform", settings.platform);
       formData.append("titleLength", String(settings.titleLength));
       formData.append("keywordsCount", String(settings.keywordsCount));
@@ -122,7 +166,6 @@ export default function Home() {
 
       if (data.success) {
         if (settings.mode === "prompt") {
-          // 👇 Prompt মোডে শুধু prompt ফিল্ড সেট হবে
           updateImage(img.id, {
             status: "done",
             prompt: data.prompt,
@@ -162,6 +205,7 @@ export default function Home() {
     if (settings.parallel) {
       await Promise.allSettled(toGenerate.map((img) => generateOne(img)));
     } else {
+      // 👇 ১০০ ইমেজের জন্য sequential (একটার পর একটা) — rate limit ও ব্রাউজার লোড এড়াতে
       for (const img of toGenerate) {
         if (stopRef.current) break;
         await generateOne(img);
