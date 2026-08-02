@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 export type Provider = "gemini" | "groq";
 
 export type GeminiModel =
@@ -82,7 +80,7 @@ export default function ControlsPanel({
           value={settings.provider}
           onChange={(e) => onChange({ provider: e.target.value as Provider })}
           disabled={disabled}
-          className="mt-3 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-400 dark:focus:border-slate-500"
+          className="mt-3 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50 outline-none appearance-none"
         >
           <option value="gemini">Google Gemini</option>
           <option value="groq">Groq — llama-4-maverick</option>
@@ -93,7 +91,7 @@ export default function ControlsPanel({
             value={settings.geminiModel}
             onChange={(e) => onChange({ geminiModel: e.target.value as GeminiModel })}
             disabled={disabled}
-            className="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-400 dark:focus:border-slate-500"
+            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none appearance-none"
           >
             {GEMINI_MODELS.map((m) => (
               <option key={m.id} value={m.id}>
@@ -212,7 +210,7 @@ export default function ControlsPanel({
             disabled={disabled}
             rows={6}
             placeholder="e.g. cinematic lighting, photorealistic, 8k, ultra detailed..."
-            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-700 dark:text-slate-200 resize-none focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-slate-600 focus:border-slate-400 dark:focus:border-slate-500"
+            className="w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-700 dark:text-slate-200 resize-none outline-none"
           />
         </div>
       )}
