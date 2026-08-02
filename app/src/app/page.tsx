@@ -79,7 +79,6 @@ export default function Home() {
     groq: [],
   });
 
-  // 👇 পেজ লোড হওয়ার সময় localStorage থেকে key পড়া
   useEffect(() => {
     try {
       const stored = localStorage.getItem("csvmeta_api_keys");
@@ -91,7 +90,6 @@ export default function Home() {
     }
   }, []);
 
-  // 👇 savedKeys বদলালেই localStorage-এ সেভ করা
   useEffect(() => {
     try {
       localStorage.setItem("csvmeta_api_keys", JSON.stringify(savedKeys));
@@ -292,7 +290,7 @@ export default function Home() {
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors">
       <Sidebar />
       <section className="ml-64 p-8 flex gap-6 items-start">
-        <div className="sticky top-8 self-start">
+        <div className="sticky top-8 self-start w-full max-w-[340px] shrink-0">
           <ControlsPanel
             settings={settings}
             onChange={updateSettings}
