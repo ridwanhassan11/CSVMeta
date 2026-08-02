@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import ControlsPanel, { GenerationSettings, Provider } from "../components/ControlsPanel";
 import UploadCard from "../components/UploadCard";
@@ -24,7 +24,6 @@ function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// 👇 ব্রাউজারেই ইমেজ resize/compress করার ফাংশন
 async function compressImage(file: File, maxDimension = 1568, quality = 0.8): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -80,6 +79,27 @@ export default function Home() {
     groq: [],
   });
 
+  // 👇 পেজ লোড হওয়ার সময় localStorage থেকে key পড়া
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("csvmeta_api_keys");
+      if (stored) {
+        setSavedKeys(JSON.parse(stored));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // 👇 savedKeys বদলালেই localStorage-এ সেভ করা
+  useEffect(() => {
+    try {
+      localStorage.setItem("csvmeta_api_keys", JSON.stringify(savedKeys));
+    } catch {
+      // ignore
+    }
+  }, [savedKeys]);
+
   const [settings, setSettings] = useState<GenerationSettings>({
     provider: "gemini",
     geminiModel: "gemini-3.5-flash",
@@ -88,7 +108,7 @@ export default function Home() {
     titleLength: 150,
     keywordsCount: 45,
     extraInstructions: "",
-    parallel: false, // 👈 ১০০ ইমেজের জন্য এটা false (sequential) রাখাই নিরাপদ
+    parallel: false,
   });
 
   function updateSettings(patch: Partial<GenerationSettings>) {
@@ -137,7 +157,6 @@ export default function Home() {
         return;
       }
 
-      // 👇 পাঠানোর আগে compress
       const compressedFile = await compressImage(img.file);
 
       const formData = new FormData();
@@ -205,7 +224,6 @@ export default function Home() {
     if (settings.parallel) {
       await Promise.allSettled(toGenerate.map((img) => generateOne(img)));
     } else {
-      // 👇 ১০০ ইমেজের জন্য sequential (একটার পর একটা) — rate limit ও ব্রাউজার লোড এড়াতে
       for (const img of toGenerate) {
         if (stopRef.current) break;
         await generateOne(img);
@@ -261,6 +279,13 @@ export default function Home() {
       [settings.provider]: [...prev[settings.provider], apiKeyInput.trim()],
     }));
     setApiKeyInput("");
+  }
+
+  function removeKey(index: number) {
+    setSavedKeys((prev) => ({
+      ...prev,
+      [settings.provider]: prev[settings.provider].filter((_, i) => i !== index),
+    }));
   }
 
   return (
@@ -340,6 +365,7 @@ export default function Home() {
           savedKeys={savedKeys[settings.provider]}
           setApiKey={setApiKeyInput}
           addKey={addKey}
+          removeKey={removeKey}
           close={() => setShowKeys(false)}
         />
       </section>
