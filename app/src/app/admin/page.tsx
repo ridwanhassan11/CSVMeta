@@ -1,4 +1,9 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
 
 type UserRecord = {
   email: string;
@@ -8,11 +13,11 @@ type UserRecord = {
 };
 
 export default async function AdminPage() {
-  const emails = (await kv.smembers("all_users")) as string[];
+  const emails = (await redis.smembers("all_users")) as string[];
 
   const users: UserRecord[] = [];
   for (const email of emails) {
-    const data = (await kv.hgetall(`user:${email}`)) as UserRecord | null;
+    const data = (await redis.hgetall(`user:${email}`)) as UserRecord | null;
     if (data) users.push(data);
   }
 
