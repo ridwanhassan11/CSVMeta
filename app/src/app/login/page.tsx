@@ -80,15 +80,15 @@ export default function LoginPage() {
         {/* headline + copy */}
         <div className="relative z-10 max-w-md">
           <h2 className="text-[1.75rem] font-semibold leading-snug tracking-tight text-white">
-            প্রতিটা ছবি থেকে,
+            From every photo,
             <br />
             <span className="bg-gradient-to-r from-[#B9A7FF] to-[#F0A93E] bg-clip-text text-transparent">
-              নিখুঁত মেটাডেটা।
+              perfect metadata.
             </span>
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-white/50">
-            Adobe Stock, Shutterstock, Freepik যেকোনো প্ল্যাটফর্মের জন্য টাইটেল, ডেসক্রিপশন ও কীওয়ার্ড
-            সেকেন্ডেই তৈরি করুন AI দিয়ে।
+            Generate titles, descriptions, and keywords in seconds with AI for Adobe Stock,
+            Shutterstock, Freepik, or any platform.
           </p>
         </div>
       </div>
@@ -119,10 +119,10 @@ export default function LoginPage() {
             Welcome back
           </p>
           <h1 className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-            আপনার অ্যাকাউন্টে সাইন ইন করুন
+            Sign in to your account
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            চালিয়ে যেতে আপনার Google অ্যাকাউন্ট ব্যবহার করুন।
+            Use your Google account to continue.
           </p>
 
           <form
@@ -160,12 +160,12 @@ export default function LoginPage() {
 
           <div className="mt-8 flex items-center gap-4 text-[11px] text-slate-400 dark:text-slate-500">
             <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-            <span>নিরাপদ ও এনক্রিপ্টেড</span>
+            <span>Secure &amp; encrypted</span>
             <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
           </div>
 
           <p className="mt-6 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
-            সাইন ইন করার মাধ্যমে আপনি CSVMeta-এর শর্তাবলী ও গোপনীয়তা নীতি মেনে নিচ্ছেন।
+            By signing in, you agree to CSVMeta&apos;s Terms and Privacy Policy.
           </p>
 
           <p className="mt-10 text-xs text-slate-400 dark:text-slate-600">
