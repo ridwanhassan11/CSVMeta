@@ -65,6 +65,17 @@ async function compressImage(file: File, maxDimension = 1568, quality = 0.8): Pr
   });
 }
 
+const DEFAULT_SETTINGS: GenerationSettings = {
+  provider: "gemini",
+  geminiModel: "gemini-3.5-flash",
+  mode: "metadata",
+  platform: "adobe-stock",
+  titleLength: 150,
+  keywordsCount: 45,
+  extraInstructions: "",
+  parallel: false,
+};
+
 export default function Home() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -98,16 +109,27 @@ export default function Home() {
     }
   }, [savedKeys]);
 
-  const [settings, setSettings] = useState<GenerationSettings>({
-    provider: "gemini",
-    geminiModel: "gemini-3.5-flash",
-    mode: "metadata",
-    platform: "adobe-stock",
-    titleLength: 150,
-    keywordsCount: 45,
-    extraInstructions: "",
-    parallel: false,
-  });
+  const [settings, setSettings] = useState<GenerationSettings>(DEFAULT_SETTINGS);
+
+  // 👇 রিফ্রেশ দিলেও সেটিংস (provider/model/platform ইত্যাদি) মনে রাখার জন্য
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("csvmeta_settings");
+      if (stored) {
+        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("csvmeta_settings", JSON.stringify(settings));
+    } catch {
+      // ignore
+    }
+  }, [settings]);
 
   function updateSettings(patch: Partial<GenerationSettings>) {
     setSettings((prev) => ({ ...prev, ...patch }));

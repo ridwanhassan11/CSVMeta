@@ -16,6 +16,9 @@ interface Props {
 const LABELS: Record<Provider, { name: string; placeholder: string }> = {
   gemini: { name: "Google Gemini", placeholder: "Enter Gemini API key" },
   groq: { name: "Groq", placeholder: "Enter Groq API key" },
+  mistral: { name: "Mistral AI", placeholder: "Enter Mistral API key" },
+  openai: { name: "OpenAI", placeholder: "Enter OpenAI API key" },
+  openrouter: { name: "OpenRouter", placeholder: "Enter OpenRouter API key" },
 };
 
 export default function ApiKeyModal({

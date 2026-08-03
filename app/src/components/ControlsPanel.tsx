@@ -1,6 +1,6 @@
 "use client";
 
-export type Provider = "gemini" | "groq";
+export type Provider = "gemini" | "groq" | "mistral" | "openai" | "openrouter";
 
 export type GeminiModel =
   | "gemini-3.1-pro"
@@ -8,6 +8,10 @@ export type GeminiModel =
   | "gemini-2.5-pro"
   | "gemini-2.5-flash"
   | "gemini-2.5-flash-lite";
+
+export type MistralModel = "pixtral-large-latest" | "pixtral-12b-2409";
+
+export type OpenAIModel = "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4.1-mini";
 
 export type Platform =
   | "general"
@@ -22,12 +26,23 @@ export type Mode = "metadata" | "prompt";
 export type GenerationSettings = {
   provider: Provider;
   geminiModel: GeminiModel;
+  mistralModel: MistralModel;
+  openaiModel: OpenAIModel;
+  openrouterModel: string;
   mode: Mode;
   platform: Platform;
   titleLength: number;
   keywordsCount: number;
   extraInstructions: string;
   parallel: boolean;
+};
+
+const PROVIDER_LABELS: Record<Provider, string> = {
+  gemini: "Google Gemini",
+  groq: "Groq",
+  mistral: "Mistral AI",
+  openai: "OpenAI",
+  openrouter: "OpenRouter",
 };
 
 const PLATFORMS: { id: Platform; label: string }[] = [
@@ -47,6 +62,18 @@ const GEMINI_MODELS: { id: GeminiModel; label: string }[] = [
   { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite, cheapest" },
 ];
 
+const MISTRAL_MODELS: { id: MistralModel; label: string }[] = [
+  { id: "pixtral-large-latest", label: "Pixtral Large, best reasoning" },
+  { id: "pixtral-12b-2409", label: "Pixtral 12B, fast" },
+];
+
+const OPENAI_MODELS: { id: OpenAIModel; label: string }[] = [
+  { id: "gpt-4o", label: "GPT-4o" },
+  { id: "gpt-4o-mini", label: "GPT-4o mini, fast" },
+  { id: "gpt-4.1", label: "GPT-4.1" },
+  { id: "gpt-4.1-mini", label: "GPT-4.1 mini" },
+];
+
 export default function ControlsPanel({
   settings,
   onChange,
@@ -64,9 +91,7 @@ export default function ControlsPanel({
         <div className="flex items-center justify-between">
           <div>
             <p className="font-semibold text-slate-900 dark:text-white">Controls</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {settings.provider === "gemini" ? "Google Gemini" : "Groq"}
-            </p>
+            <p className="text-xs text-slate-400 mt-0.5">{PROVIDER_LABELS[settings.provider]}</p>
           </div>
           <button
             onClick={onOpenKeys}
@@ -98,6 +123,9 @@ export default function ControlsPanel({
         >
           <option value="gemini">Google Gemini</option>
           <option value="groq">Groq, llama-4-maverick</option>
+          <option value="mistral">Mistral AI</option>
+          <option value="openai">OpenAI</option>
+          <option value="openrouter">OpenRouter</option>
         </select>
 
         {settings.provider === "gemini" && (
@@ -113,6 +141,47 @@ export default function ControlsPanel({
               </option>
             ))}
           </select>
+        )}
+
+        {settings.provider === "mistral" && (
+          <select
+            value={settings.mistralModel}
+            onChange={(e) => onChange({ mistralModel: e.target.value as MistralModel })}
+            disabled={disabled}
+            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none appearance-none"
+          >
+            {MISTRAL_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {settings.provider === "openai" && (
+          <select
+            value={settings.openaiModel}
+            onChange={(e) => onChange({ openaiModel: e.target.value as OpenAIModel })}
+            disabled={disabled}
+            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none appearance-none"
+          >
+            {OPENAI_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {settings.provider === "openrouter" && (
+          <input
+            type="text"
+            value={settings.openrouterModel}
+            onChange={(e) => onChange({ openrouterModel: e.target.value })}
+            disabled={disabled}
+            placeholder="e.g. google/gemini-2.5-flash"
+            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none"
+          />
         )}
 
         <div className="mt-4 flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
