@@ -20,10 +20,15 @@ interface Props {
   close: () => void;
 }
 
-const PROVIDER_META: Record
-  Provider,
-  { name: string; tagline: string; badge: string; keyUrl: string; icon: JSX.Element }
-> = {
+type ProviderMetaEntry = {
+  name: string;
+  tagline: string;
+  badge: string;
+  keyUrl: string;
+  icon: JSX.Element;
+};
+
+const PROVIDER_META: Record<Provider, ProviderMetaEntry> = {
   gemini: {
     name: "Google Gemini",
     tagline: "ছবি বিশ্লেষণ ও টেক্সট জেনারেশনের জন্য Google-এর মডেল",
