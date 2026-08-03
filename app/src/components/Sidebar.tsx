@@ -1,6 +1,7 @@
 "use client";
 
 import { useTheme } from "../hooks/useTheme";
+import { signOut } from "next-auth/react";
 
 type NavItem = "Dashboard";
 
@@ -35,7 +36,7 @@ export default function Sidebar({ active = "Dashboard" }: { active?: NavItem }) 
         ))}
       </nav>
 
-      <div className="mt-auto">
+      <div className="mt-auto space-y-3">
         <div className="flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3">
           <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
             {theme === "dark" ? "🌙 Dark Mode" : "☀️ Light Mode"}
@@ -53,6 +54,27 @@ export default function Sidebar({ active = "Dashboard" }: { active?: NavItem }) 
             />
           </button>
         </div>
+
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Log out
+        </button>
       </div>
     </aside>
   );
