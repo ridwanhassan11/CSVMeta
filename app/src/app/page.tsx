@@ -68,6 +68,9 @@ async function compressImage(file: File, maxDimension = 1568, quality = 0.8): Pr
 const DEFAULT_SETTINGS: GenerationSettings = {
   provider: "gemini",
   geminiModel: "gemini-3.5-flash",
+  mistralModel: "mistral-large-latest",
+  openaiModel: "gpt-4o",
+  openrouterModel: "google/gemini-2.5-flash",
   mode: "metadata",
   platform: "adobe-stock",
   titleLength: 150,
@@ -88,13 +91,16 @@ export default function Home() {
   const [savedKeys, setSavedKeys] = useState<Record<Provider, string[]>>({
     gemini: [],
     groq: [],
+    mistral: [],
+    openai: [],
+    openrouter: [],
   });
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem("csvmeta_api_keys");
       if (stored) {
-        setSavedKeys(JSON.parse(stored));
+        setSavedKeys((prev) => ({ ...prev, ...JSON.parse(stored) }));
       }
     } catch {
       // ignore
@@ -183,6 +189,9 @@ export default function Home() {
       formData.append("file", compressedFile);
       formData.append("provider", settings.provider);
       formData.append("geminiModel", settings.geminiModel);
+      formData.append("mistralModel", settings.mistralModel);
+      formData.append("openaiModel", settings.openaiModel);
+      formData.append("openrouterModel", settings.openrouterModel);
       formData.append("apiKey", activeKey);
       formData.append("mode", settings.mode);
       formData.append("platform", settings.platform);
