@@ -1,21 +1,23 @@
 import { signIn } from "@/auth";
 
 const SAMPLE_TAGS = [
-  { text: "golden hour", left: "8%", top: "10%" },
-  { text: "aerial view", left: "62%", top: "8%" },
-  { text: "4K", left: "40%", top: "16%" },
-  { text: "copy space", left: "5%", top: "38%" },
-  { text: "minimalist", left: "70%", top: "30%" },
-  { text: "high resolution", left: "15%", top: "58%" },
-  { text: "vibrant colors", left: "68%", top: "55%" },
-  { text: "outdoors", left: "35%", top: "70%" },
-  { text: "professional", left: "5%", top: "78%" },
-  { text: "close-up", left: "60%", top: "80%" },
+  { text: "golden hour", left: "4%", top: "8%" },
+  { text: "aerial view", left: "34%", top: "6%" },
+  { text: "4K", left: "58%", top: "12%" },
+  { text: "professional", left: "82%", top: "9%" },
+  { text: "copy space", left: "2%", top: "34%" },
+  { text: "minimalist", left: "40%", top: "28%" },
+  { text: "high resolution", left: "70%", top: "32%" },
+  { text: "vibrant colors", left: "18%", top: "56%" },
+  { text: "outdoors", left: "48%", top: "62%" },
+  { text: "close-up", left: "76%", top: "58%" },
+  { text: "studio light", left: "10%", top: "80%" },
+  { text: "wide angle", left: "60%", top: "84%" },
 ];
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-[#FAF9F6] dark:bg-[#0B0A14]">
+    <main className="relative min-h-screen grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-[#FAF9F6] dark:bg-[#0B0A14] overflow-hidden">
       {/* LEFT — brand showcase */}
       <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-[#12111F] px-14 py-12">
         {/* ambient glow */}
@@ -32,24 +34,6 @@ export default function LoginPage() {
           }}
         />
 
-        {/* floating keyword chips — spread across the ENTIRE left panel */}
-        <div className="pointer-events-none absolute inset-0 z-[5]">
-          {SAMPLE_TAGS.map((tag, i) => (
-            <span
-              key={tag.text}
-              className="tag-chip absolute rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1 font-mono text-[11px] text-white/75 backdrop-blur-lg shadow-[0_4px_14px_rgba(0,0,0,0.2)] whitespace-nowrap"
-              style={{
-                left: tag.left,
-                top: tag.top,
-                animationDelay: `${i * 0.9}s`,
-                animationDuration: `${7 + (i % 4)}s`,
-              }}
-            >
-              {tag.text}
-            </span>
-          ))}
-        </div>
-
         {/* logo row */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15 shadow-[0_2px_8px_rgba(0,0,0,0.25)]">
@@ -58,8 +42,8 @@ export default function LoginPage() {
           <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
         </div>
 
-        {/* signature visual: fixed photo frame in the center */}
-        <div className="relative z-10 flex-1 flex items-center justify-center">
+        {/* fixed photo frame — stays centered in the left panel */}
+        <div className="relative z-20 flex-1 flex items-center justify-center">
           <div className="relative h-64 w-64">
             <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-[0_20px_60px_-10px_rgba(124,92,252,0.35)] transition-shadow duration-500 hover:shadow-[0_25px_70px_-10px_rgba(124,92,252,0.5)]">
               <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-[#7C5CFC]/40 via-[#3E3B6B]/40 to-[#F0A93E]/30" />
@@ -79,7 +63,7 @@ export default function LoginPage() {
         </div>
 
         {/* headline + copy */}
-        <div className="relative z-10 max-w-md">
+        <div className="relative z-20 max-w-md">
           <h2 className="text-[1.8rem] font-semibold leading-snug tracking-tight text-white">
             From every photo,
             <br />
@@ -105,7 +89,7 @@ export default function LoginPage() {
           }}
         />
 
-        <div className="relative w-full max-w-sm">
+        <div className="relative z-20 w-full max-w-sm">
           {/* mobile-only compact brand row */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#12111F]/5 dark:bg-white/10 ring-1 ring-[#12111F]/10 dark:ring-white/15">
@@ -177,6 +161,32 @@ export default function LoginPage() {
             © {new Date().getFullYear()} CSVMeta Powered by AI
           </p>
         </div>
+      </div>
+
+      {/* FLOATING TAGS — layered over the ENTIRE screen, both panels, only on lg+ */}
+      <div className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
+        {SAMPLE_TAGS.map((tag, i) => {
+          const isRightHalf = parseFloat(tag.left) >= 50;
+          return (
+            <span
+              key={tag.text}
+              className={
+                "tag-chip absolute rounded-full border px-3 py-1 font-mono text-[11px] backdrop-blur-lg whitespace-nowrap shadow-[0_4px_14px_rgba(0,0,0,0.15)] " +
+                (isRightHalf
+                  ? "border-slate-900/10 bg-white/60 text-slate-600"
+                  : "border-white/[0.12] bg-white/[0.08] text-white/75")
+              }
+              style={{
+                left: tag.left,
+                top: tag.top,
+                animationDelay: `${i * 0.9}s`,
+                animationDuration: `${7 + (i % 4)}s`,
+              }}
+            >
+              {tag.text}
+            </span>
+          );
+        })}
       </div>
 
       <style>{`
