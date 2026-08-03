@@ -34,7 +34,7 @@ export default function LoginPage() {
 
         {/* logo row */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15 shadow-[0_2px_8px_rgba(0,0,0,0.25)]">
             <img src="/logo-icon.png" alt="" className="h-5 w-5 object-contain" />
           </div>
           <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
@@ -44,7 +44,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex-1 flex items-center justify-center">
           <div className="relative h-64 w-64">
             {/* frame representing an uploaded photo */}
-            <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-2xl">
+            <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-[0_20px_60px_-10px_rgba(124,92,252,0.35)] transition-shadow duration-500 hover:shadow-[0_25px_70px_-10px_rgba(124,92,252,0.5)]">
               <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-[#7C5CFC]/40 via-[#3E3B6B]/40 to-[#F0A93E]/30" />
               <svg
                 viewBox="0 0 24 24"
@@ -63,7 +63,7 @@ export default function LoginPage() {
             {SAMPLE_TAGS.map((tag, i) => (
               <span
                 key={tag}
-                className="tag-chip absolute rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 font-mono text-[11px] text-white/70 backdrop-blur-md whitespace-nowrap"
+                className="tag-chip absolute rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1 font-mono text-[11px] text-white/75 backdrop-blur-lg shadow-[0_4px_14px_rgba(0,0,0,0.2)] whitespace-nowrap"
                 style={{
                   left: `${(i * 37) % 100}%`,
                   top: `${(i * 53) % 100}%`,
@@ -79,7 +79,7 @@ export default function LoginPage() {
 
         {/* headline + copy */}
         <div className="relative z-10 max-w-md">
-          <h2 className="text-[1.75rem] font-semibold leading-snug tracking-tight text-white">
+          <h2 className="text-[1.8rem] font-semibold leading-snug tracking-tight text-white">
             From every photo,
             <br />
             <span className="bg-gradient-to-r from-[#B9A7FF] to-[#F0A93E] bg-clip-text text-transparent">
@@ -134,7 +134,7 @@ export default function LoginPage() {
           >
             <button
               type="submit"
-              className="group flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-white shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:bg-white/[0.07] transition"
+              className="group flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:border-slate-300 dark:hover:bg-white/[0.07] transition-all duration-200"
             >
               <svg viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
                 <path
@@ -158,9 +158,13 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 flex items-center gap-4 text-[11px] text-slate-400 dark:text-slate-500">
+          <div className="mt-8 flex items-center justify-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500">
             <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-            <span>Secure &amp; encrypted</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-3 w-3 shrink-0">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V7a4 4 0 1 1 8 0v4" />
+            </svg>
+            <span className="shrink-0 px-1">Secure &amp; encrypted</span>
             <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
           </div>
 
