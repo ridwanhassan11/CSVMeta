@@ -352,8 +352,14 @@ export default function Home() {
             </div>
           )}
 
-          <PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} />
-          <ResultCard image={selectedImage} />
+          <PreviewGrid
+            images={images}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onRemove={removeImage}
+            onUpdate={updateImage}
+          />
+          <ResultCard image={selectedImage} onUpdate={updateImage} />
         </div>
 
         <ApiKeyModal

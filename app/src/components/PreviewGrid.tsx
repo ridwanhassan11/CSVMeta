@@ -7,11 +7,13 @@ export default function PreviewGrid({
   selectedId,
   onSelect,
   onRemove,
+  onUpdate,
 }: {
   images: ImageItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
+  onUpdate: (id: string, patch: Partial<ImageItem>) => void;
 }) {
   if (images.length === 0) return null;
 
@@ -22,6 +24,9 @@ export default function PreviewGrid({
     error: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400",
   };
 
+  const fieldClass =
+    "w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-slate-400 dark:focus:border-slate-500 resize-none";
+
   return (
     <div className="mt-6 space-y-4">
       <p className="text-sm font-semibold text-slate-900 dark:text-white">Images ({images.length})</p>
@@ -30,7 +35,7 @@ export default function PreviewGrid({
         <div
           key={img.id}
           onClick={() => onSelect(img.id)}
-          className={`flex gap-5 rounded-3xl border bg-white dark:bg-slate-900 p-5 cursor-pointer transition-colors ${
+          className={`group flex gap-5 rounded-3xl border bg-white dark:bg-slate-900 p-5 cursor-pointer transition-colors ${
             selectedId === img.id ? "border-slate-900 dark:border-white" : "border-slate-200 dark:border-slate-800"
           }`}
         >
@@ -66,11 +71,17 @@ export default function PreviewGrid({
             )}
 
             {img.status === "done" && (
-              <div className="mt-2 space-y-2">
-                {img.prompt ? (
+              <div className="mt-2 space-y-3">
+                {img.prompt !== undefined ? (
                   <div>
-                    <p className="text-[11px] font-semibold text-slate-400">GENERATED PROMPT</p>
-                    <p className="text-sm text-slate-800 dark:text-slate-200">{img.prompt}</p>
+                    <p className="text-[11px] font-semibold text-slate-400 mb-1">GENERATED PROMPT</p>
+                    <textarea
+                      value={img.prompt || ""}
+                      rows={3}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => onUpdate(img.id, { prompt: e.target.value })}
+                      className={fieldClass}
+                    />
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -84,29 +95,45 @@ export default function PreviewGrid({
                 ) : (
                   <>
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">TITLE</p>
-                      <p className="text-sm text-slate-800 dark:text-slate-200">{img.title}</p>
+                      <p className="text-[11px] font-semibold text-slate-400 mb-1">TITLE</p>
+                      <input
+                        type="text"
+                        value={img.title || ""}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => onUpdate(img.id, { title: e.target.value })}
+                        className={fieldClass}
+                      />
                     </div>
 
-                    {img.description && (
+                    {img.description !== undefined && (
                       <div>
-                        <p className="text-[11px] font-semibold text-slate-400">DESCRIPTION</p>
-                        <p className="text-sm text-slate-800 dark:text-slate-200">{img.description}</p>
+                        <p className="text-[11px] font-semibold text-slate-400 mb-1">DESCRIPTION</p>
+                        <textarea
+                          value={img.description || ""}
+                          rows={2}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => onUpdate(img.id, { description: e.target.value })}
+                          className={fieldClass}
+                        />
                       </div>
                     )}
 
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">KEYWORDS</p>
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {img.keywords?.map((k) => (
-                          <span
-                            key={k}
-                            className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300"
-                          >
-                            {k}
-                          </span>
-                        ))}
-                      </div>
+                      <p className="text-[11px] font-semibold text-slate-400 mb-1">KEYWORDS</p>
+                      <textarea
+                        value={(img.keywords || []).join(", ")}
+                        rows={2}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          onUpdate(img.id, {
+                            keywords: e.target.value
+                              .split(",")
+                              .map((k) => k.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                        className={fieldClass}
+                      />
                     </div>
 
                     <div className="flex gap-2 pt-1">

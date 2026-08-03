@@ -12,24 +12,36 @@ const PLATFORM_LABELS: Record<string, string> = {
   pond5: "Pond5",
 };
 
+// 👇 কোন প্ল্যাটফর্মে Description থাকবে
+const PLATFORMS_WITH_DESCRIPTION = ["general", "shutterstock", "vecteezy", "pond5"];
+
 function buildMetadataPrompt(opts: {
   platform: string;
   titleLength: number;
   keywordsCount: number;
   extraInstructions: string;
+  includeDescription: boolean;
 }) {
   const platformLabel = PLATFORM_LABELS[opts.platform] || "a stock platform";
-  return `
-Return ONLY valid JSON in this exact shape:
-{
+
+  const jsonShape = opts.includeDescription
+    ? `{
   "title": "",
   "description": "",
   "keywords": []
-}
+}`
+    : `{
+  "title": "",
+  "keywords": []
+}`;
+
+  return `
+Return ONLY valid JSON in this exact shape:
+${jsonShape}
 
 Rules:
 - Write a title suited for ${platformLabel}, max ${opts.titleLength} characters.
-- Write a description of around 150 characters.
+${opts.includeDescription ? "- Write a description of around 150 characters." : ""}
 - Provide exactly ${opts.keywordsCount} relevant keywords, ordered by relevance.
 - Return JSON only. No markdown. No explanation.
 ${opts.extraInstructions ? `- Additional instructions: ${opts.extraInstructions}` : ""}
@@ -105,7 +117,7 @@ export async function POST(req: Request) {
     const provider = (formData.get("provider") as string) || "gemini";
     const geminiModel = (formData.get("geminiModel") as string) || "gemini-2.5-flash";
     const apiKey = (formData.get("apiKey") as string) || "";
-    const mode = (formData.get("mode") as string) || "metadata"; // 👈 নতুন
+    const mode = (formData.get("mode") as string) || "metadata";
     const platform = (formData.get("platform") as string) || "general";
     const titleLength = Number(formData.get("titleLength")) || 150;
     const keywordsCount = Number(formData.get("keywordsCount")) || 45;
@@ -139,11 +151,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // 👇 কোন প্ল্যাটফর্মে description লাগবে কিনা
+    const includeDescription = PLATFORMS_WITH_DESCRIPTION.includes(platform);
+
     // 👇 mode অনুযায়ী আলাদা prompt তৈরি
     const prompt =
       mode === "prompt"
         ? buildImagePromptPrompt({ extraInstructions })
-        : buildMetadataPrompt({ platform, titleLength, keywordsCount, extraInstructions });
+        : buildMetadataPrompt({ platform, titleLength, keywordsCount, extraInstructions, includeDescription });
 
     let rawText: string;
     try {
@@ -181,7 +196,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       title: data.title,
-      description: data.description,
+      description: includeDescription ? data.description : undefined,
       keywords: data.keywords,
     });
   } catch (error: any) {

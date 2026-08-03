@@ -2,9 +2,12 @@
 
 import type { ImageItem } from "../app/page";
 
-type Props = { image: ImageItem | null };
+type Props = {
+  image: ImageItem | null;
+  onUpdate: (id: string, patch: Partial<ImageItem>) => void;
+};
 
-export default function ResultCard({ image }: Props) {
+export default function ResultCard({ image, onUpdate }: Props) {
   if (!image) {
     return (
       <div className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-16 text-center transition-colors">
@@ -39,6 +42,9 @@ export default function ResultCard({ image }: Props) {
     );
   }
 
+  const fieldClass =
+    "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-slate-400 dark:focus:border-slate-500 resize-none";
+
   return (
     <div className="mt-6 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 transition-colors">
       <div className="flex items-center gap-3">
@@ -56,24 +62,41 @@ export default function ResultCard({ image }: Props) {
       <div className="mt-5 space-y-4">
         <div>
           <p className="text-xs font-semibold text-slate-400">TITLE</p>
-          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">{image.title}</p>
+          <input
+            type="text"
+            value={image.title || ""}
+            onChange={(e) => onUpdate(image.id, { title: e.target.value })}
+            className={fieldClass}
+          />
         </div>
-        <div>
-          <p className="text-xs font-semibold text-slate-400">DESCRIPTION</p>
-          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">{image.description}</p>
-        </div>
+
+        {image.description !== undefined && (
+          <div>
+            <p className="text-xs font-semibold text-slate-400">DESCRIPTION</p>
+            <textarea
+              value={image.description || ""}
+              rows={3}
+              onChange={(e) => onUpdate(image.id, { description: e.target.value })}
+              className={fieldClass}
+            />
+          </div>
+        )}
+
         <div>
           <p className="text-xs font-semibold text-slate-400">KEYWORDS</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {image.keywords?.map((k) => (
-              <span
-                key={k}
-                className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300"
-              >
-                {k}
-              </span>
-            ))}
-          </div>
+          <textarea
+            value={(image.keywords || []).join(", ")}
+            rows={3}
+            onChange={(e) =>
+              onUpdate(image.id, {
+                keywords: e.target.value
+                  .split(",")
+                  .map((k) => k.trim())
+                  .filter(Boolean),
+              })
+            }
+            className={fieldClass}
+          />
         </div>
       </div>
 
