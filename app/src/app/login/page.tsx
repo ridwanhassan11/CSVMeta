@@ -1,16 +1,16 @@
 import { signIn } from "@/auth";
 
 const SAMPLE_TAGS = [
-  "golden hour",
-  "aerial view",
-  "4K",
-  "copy space",
-  "minimalist",
-  "high resolution",
-  "vibrant colors",
-  "outdoors",
-  "professional",
-  "close-up",
+  { text: "golden hour", left: "8%", top: "10%" },
+  { text: "aerial view", left: "62%", top: "8%" },
+  { text: "4K", left: "40%", top: "16%" },
+  { text: "copy space", left: "5%", top: "38%" },
+  { text: "minimalist", left: "70%", top: "30%" },
+  { text: "high resolution", left: "15%", top: "58%" },
+  { text: "vibrant colors", left: "68%", top: "55%" },
+  { text: "outdoors", left: "35%", top: "70%" },
+  { text: "professional", left: "5%", top: "78%" },
+  { text: "close-up", left: "60%", top: "80%" },
 ];
 
 export default function LoginPage() {
@@ -32,6 +32,24 @@ export default function LoginPage() {
           }}
         />
 
+        {/* floating keyword chips — spread across the ENTIRE left panel */}
+        <div className="pointer-events-none absolute inset-0 z-[5]">
+          {SAMPLE_TAGS.map((tag, i) => (
+            <span
+              key={tag.text}
+              className="tag-chip absolute rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1 font-mono text-[11px] text-white/75 backdrop-blur-lg shadow-[0_4px_14px_rgba(0,0,0,0.2)] whitespace-nowrap"
+              style={{
+                left: tag.left,
+                top: tag.top,
+                animationDelay: `${i * 0.9}s`,
+                animationDuration: `${7 + (i % 4)}s`,
+              }}
+            >
+              {tag.text}
+            </span>
+          ))}
+        </div>
+
         {/* logo row */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15 shadow-[0_2px_8px_rgba(0,0,0,0.25)]">
@@ -40,10 +58,9 @@ export default function LoginPage() {
           <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
         </div>
 
-        {/* signature visual: photo silhouette with tags rising off it */}
+        {/* signature visual: fixed photo frame in the center */}
         <div className="relative z-10 flex-1 flex items-center justify-center">
           <div className="relative h-64 w-64">
-            {/* frame representing an uploaded photo */}
             <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-[0_20px_60px_-10px_rgba(124,92,252,0.35)] transition-shadow duration-500 hover:shadow-[0_25px_70px_-10px_rgba(124,92,252,0.5)]">
               <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-[#7C5CFC]/40 via-[#3E3B6B]/40 to-[#F0A93E]/30" />
               <svg
@@ -58,22 +75,6 @@ export default function LoginPage() {
                 <path d="M21 16l-5.5-5.5L9 17" />
               </svg>
             </div>
-
-            {/* floating keyword chips */}
-            {SAMPLE_TAGS.map((tag, i) => (
-              <span
-                key={tag}
-                className="tag-chip absolute rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1 font-mono text-[11px] text-white/75 backdrop-blur-lg shadow-[0_4px_14px_rgba(0,0,0,0.2)] whitespace-nowrap"
-                style={{
-                  left: `${(i * 37) % 100}%`,
-                  top: `${(i * 53) % 100}%`,
-                  animationDelay: `${i * 0.9}s`,
-                  animationDuration: `${7 + (i % 4)}s`,
-                }}
-              >
-                {tag}
-              </span>
-            ))}
           </div>
         </div>
 
