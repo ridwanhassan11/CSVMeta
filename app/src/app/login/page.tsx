@@ -122,7 +122,7 @@ export default function LoginPage() {
             আপনার অ্যাকাউন্টে সাইন ইন করুন
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            চালিয়ে যেতে আপনার Google অ্যাকাউন্ট ব্যবহার করুন — কোনো পাসওয়ার্ড লাগবে না।
+            চালিয়ে যেতে আপনার Google অ্যাকাউন্ট ব্যবহার করুন।
           </p>
 
           <form
