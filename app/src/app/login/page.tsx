@@ -87,7 +87,7 @@ export default function LoginPage() {
             </span>
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-white/50">
-            Adobe Stock, Shutterstock, Freepik — যেকোনো প্ল্যাটফর্মের জন্য টাইটেল, ডেসক্রিপশন ও কীওয়ার্ড
+            Adobe Stock, Shutterstock, Freepik যেকোনো প্ল্যাটফর্মের জন্য টাইটেল, ডেসক্রিপশন ও কীওয়ার্ড
             সেকেন্ডেই তৈরি করুন AI দিয়ে।
           </p>
         </div>
@@ -169,7 +169,7 @@ export default function LoginPage() {
           </p>
 
           <p className="mt-10 text-xs text-slate-400 dark:text-slate-600">
-            © {new Date().getFullYear()} CSVMeta — Powered by AI
+            © {new Date().getFullYear()} CSVMeta Powered by AI
           </p>
         </div>
       </div>
