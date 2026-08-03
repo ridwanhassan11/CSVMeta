@@ -18,11 +18,9 @@ export default function LoginPage() {
     <main className="min-h-screen grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-[#FAF9F6] dark:bg-[#0B0A14]">
       {/* LEFT — brand showcase */}
       <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-[#12111F] px-14 py-12">
-        {/* ambient glow */}
         <div className="pointer-events-none absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-[#7C5CFC]/30 blur-[110px]" />
         <div className="pointer-events-none absolute bottom-[-8rem] right-[-6rem] h-[24rem] w-[24rem] rounded-full bg-[#F0A93E]/20 blur-[100px]" />
 
-        {/* grain / grid texture */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.06]"
           style={{
@@ -32,7 +30,6 @@ export default function LoginPage() {
           }}
         />
 
-        {/* logo row */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
             <img src="/logo-icon.png" alt="" className="h-5 w-5 object-contain" />
@@ -40,10 +37,8 @@ export default function LoginPage() {
           <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
         </div>
 
-        {/* signature visual: photo silhouette with tags rising off it */}
         <div className="relative z-10 flex-1 flex items-center justify-center">
           <div className="relative h-64 w-64">
-            {/* frame representing an uploaded photo */}
             <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-2xl">
               <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-[#7C5CFC]/40 via-[#3E3B6B]/40 to-[#F0A93E]/30" />
               <svg
@@ -59,7 +54,6 @@ export default function LoginPage() {
               </svg>
             </div>
 
-            {/* floating keyword chips */}
             {SAMPLE_TAGS.map((tag, i) => (
               <span
                 key={tag}
@@ -77,7 +71,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* headline + copy */}
         <div className="relative z-10 max-w-md">
           <h2 className="text-[1.75rem] font-semibold leading-snug tracking-tight text-white">
             প্রতিটা ছবি থেকে,
@@ -105,7 +98,6 @@ export default function LoginPage() {
         />
 
         <div className="relative w-full max-w-sm">
-          {/* mobile-only compact brand row */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#12111F]/5 dark:bg-white/10 ring-1 ring-[#12111F]/10 dark:ring-white/15">
               <img src="/logo-icon.png" alt="" className="h-5 w-5 object-contain" />
@@ -115,10 +107,10 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <p className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7C5CFC] dark:text-[#B9A7FF]">
             Welcome back
           </p>
-          <h1 className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
             আপনার অ্যাকাউন্টে সাইন ইন করুন
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
