@@ -68,7 +68,7 @@ async function compressImage(file: File, maxDimension = 1568, quality = 0.8): Pr
 const DEFAULT_SETTINGS: GenerationSettings = {
   provider: "gemini",
   geminiModel: "gemini-3.5-flash",
-  mistralModel: "mistral-large-latest",
+  mistralModel: "pixtral-large-latest",
   openaiModel: "gpt-4o",
   openrouterModel: "google/gemini-2.5-flash",
   mode: "metadata",
