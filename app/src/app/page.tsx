@@ -86,7 +86,6 @@ export default function Home() {
   const stopRef = useRef(false);
 
   const [showKeys, setShowKeys] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState("");
 
   const [savedKeys, setSavedKeys] = useState<Record<Provider, string[]>>({
     gemini: [],
@@ -301,20 +300,27 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
 
-  function addKey() {
-    if (!apiKeyInput.trim()) return;
+  function addKey(provider: Provider, key: string) {
     setSavedKeys((prev) => ({
       ...prev,
-      [settings.provider]: [...prev[settings.provider], apiKeyInput.trim()],
+      [provider]: [...prev[provider], key],
     }));
-    setApiKeyInput("");
   }
 
-  function removeKey(index: number) {
+  function removeKey(provider: Provider, index: number) {
     setSavedKeys((prev) => ({
       ...prev,
-      [settings.provider]: prev[settings.provider].filter((_, i) => i !== index),
+      [provider]: prev[provider].filter((_, i) => i !== index),
     }));
+  }
+
+  function setActiveKey(provider: Provider, index: number) {
+    setSavedKeys((prev) => {
+      const list = [...prev[provider]];
+      const [chosen] = list.splice(index, 1);
+      list.unshift(chosen);
+      return { ...prev, [provider]: list };
+    });
   }
 
   return (
@@ -418,12 +424,12 @@ export default function Home() {
 
         <ApiKeyModal
           open={showKeys}
-          provider={settings.provider}
-          apiKey={apiKeyInput}
-          savedKeys={savedKeys[settings.provider]}
-          setApiKey={setApiKeyInput}
+          settings={settings}
+          onChange={updateSettings}
+          savedKeys={savedKeys}
           addKey={addKey}
           removeKey={removeKey}
+          setActiveKey={setActiveKey}
           close={() => setShowKeys(false)}
         />
       </section>

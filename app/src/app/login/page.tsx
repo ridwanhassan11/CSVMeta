@@ -62,8 +62,8 @@ export default function LoginPage() {
       </div>
 
       {/* CENTER — sign-in card, all content centered */}
-      <div className="relative z-20 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-8 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)] text-center">
-        <p className="text-3xl font-bold tracking-tight text-white">
+      <div className="relative z-20 w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-8 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)] text-center">
+        <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white whitespace-nowrap">
           Welcome back to CSVMeta
         </p>
         <h1 className="mt-2 text-sm font-medium text-white/60">Sign in to your account</h1>

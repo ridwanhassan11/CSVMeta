@@ -48,7 +48,6 @@ ${opts.extraInstructions ? `- Additional instructions: ${opts.extraInstructions}
 `;
 }
 
-// 👇 নতুন — image generation prompt লেখার জন্য
 function buildImagePromptPrompt(opts: { extraInstructions: string }) {
   return `
 Look at this image carefully and write a highly detailed, descriptive prompt that could be used to recreate this exact image with an AI image generator (like Midjourney or DALL-E).
@@ -110,12 +109,62 @@ async function generateWithGroq(apiKey: string, buffer: Buffer, mimeType: string
   return completion.choices[0]?.message?.content || "";
 }
 
+// 👇 Mistral, OpenAI, OpenRouter — সবগুলোই OpenAI-কম্প্যাটিবল chat completions API,
+// তাই একটাই জেনেরিক ফাংশন দিয়ে কাজ চলবে
+async function generateWithOpenAICompatible(opts: {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  buffer: Buffer;
+  mimeType: string;
+  prompt: string;
+  providerLabel: string;
+  extraHeaders?: Record<string, string>;
+}) {
+  if (!opts.apiKey) throw new Error(`${opts.providerLabel} API key missing. Please add it via API Keys.`);
+
+  const base64Image = opts.buffer.toString("base64");
+
+  const res = await fetch(`${opts.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.apiKey}`,
+      ...(opts.extraHeaders || {}),
+    },
+    body: JSON.stringify({
+      model: opts.model,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: opts.prompt },
+            { type: "image_url", image_url: { url: `data:${opts.mimeType};base64,${base64Image}` } },
+          ],
+        },
+      ],
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`${opts.providerLabel} error (${res.status}): ${errText.slice(0, 300)}`);
+  }
+
+  const json = await res.json();
+  return json.choices?.[0]?.message?.content || "";
+}
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const provider = (formData.get("provider") as string) || "gemini";
     const geminiModel = (formData.get("geminiModel") as string) || "gemini-2.5-flash";
+    const mistralModel = (formData.get("mistralModel") as string) || "pixtral-large-latest";
+    const openaiModel = (formData.get("openaiModel") as string) || "gpt-4o";
+    const openrouterModel = (formData.get("openrouterModel") as string) || "google/gemini-2.5-flash";
     const apiKey = (formData.get("apiKey") as string) || "";
     const mode = (formData.get("mode") as string) || "metadata";
     const platform = (formData.get("platform") as string) || "general";
@@ -151,10 +200,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 👇 কোন প্ল্যাটফর্মে description লাগবে কিনা
     const includeDescription = PLATFORMS_WITH_DESCRIPTION.includes(platform);
 
-    // 👇 mode অনুযায়ী আলাদা prompt তৈরি
     const prompt =
       mode === "prompt"
         ? buildImagePromptPrompt({ extraInstructions })
@@ -162,10 +209,50 @@ export async function POST(req: Request) {
 
     let rawText: string;
     try {
-      rawText =
-        provider === "groq"
-          ? await generateWithGroq(apiKey, buffer, mimeType, prompt)
-          : await generateWithGemini(apiKey, geminiModel, buffer, mimeType, prompt);
+      switch (provider) {
+        case "groq":
+          rawText = await generateWithGroq(apiKey, buffer, mimeType, prompt);
+          break;
+        case "mistral":
+          rawText = await generateWithOpenAICompatible({
+            baseUrl: "https://api.mistral.ai/v1",
+            apiKey,
+            model: mistralModel,
+            buffer,
+            mimeType,
+            prompt,
+            providerLabel: "Mistral",
+          });
+          break;
+        case "openai":
+          rawText = await generateWithOpenAICompatible({
+            baseUrl: "https://api.openai.com/v1",
+            apiKey,
+            model: openaiModel,
+            buffer,
+            mimeType,
+            prompt,
+            providerLabel: "OpenAI",
+          });
+          break;
+        case "openrouter":
+          rawText = await generateWithOpenAICompatible({
+            baseUrl: "https://openrouter.ai/api/v1",
+            apiKey,
+            model: openrouterModel,
+            buffer,
+            mimeType,
+            prompt,
+            providerLabel: "OpenRouter",
+            extraHeaders: {
+              "HTTP-Referer": "https://csvmeta-drab.vercel.app",
+              "X-Title": "CSVMeta",
+            },
+          });
+          break;
+        default:
+          rawText = await generateWithGemini(apiKey, geminiModel, buffer, mimeType, prompt);
+      }
     } catch (providerError: any) {
       return NextResponse.json(
         { success: false, error: providerError?.message || "Provider error" },
@@ -185,7 +272,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 👇 mode অনুযায়ী আলাদা response shape
     if (mode === "prompt") {
       return NextResponse.json({
         success: true,
