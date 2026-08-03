@@ -198,7 +198,7 @@ export default function ApiKeyModal({
               </div>
               <p className="mt-1 text-sm text-slate-400">{meta.tagline}</p>
             </div>
-            
+            <a
               href={meta.keyUrl}
               target="_blank"
               rel="noreferrer"
