@@ -176,7 +176,7 @@ export default function Home() {
       } catch {
         updateImage(img.id, {
           status: "error",
-          error: `Server error (${res.status}). The image may be too large — try a smaller file.`,
+          error: `Server error (${res.status}). The image may be too large, try a smaller file.`,
         });
         return;
       }

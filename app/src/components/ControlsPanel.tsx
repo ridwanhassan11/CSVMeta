@@ -40,11 +40,11 @@ const PLATFORMS: { id: Platform; label: string }[] = [
 ];
 
 const GEMINI_MODELS: { id: GeminiModel; label: string }[] = [
-  { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro — best reasoning" },
-  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash — fast, default" },
+  { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro, best reasoning" },
+  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash, fast, default" },
   { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite — cheapest" },
+  { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite, cheapest" },
 ];
 
 export default function ControlsPanel({
@@ -97,7 +97,7 @@ export default function ControlsPanel({
           className="mt-3 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50 outline-none appearance-none"
         >
           <option value="gemini">Google Gemini</option>
-          <option value="groq">Groq — llama-4-maverick</option>
+          <option value="groq">Groq, llama-4-maverick</option>
         </select>
 
         {settings.provider === "gemini" && (

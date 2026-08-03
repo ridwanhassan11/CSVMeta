@@ -85,7 +85,7 @@ export default function UploadCard({
           Drag &amp; drop files here, or <span className="underline">browse</span>
         </p>
         <p className="mt-1 text-xs text-slate-400">
-          PNG, JPG, JPEG, WEBP — up to 100 images
+          PNG, JPG, JPEG, WEBP, up to 100 images
         </p>
       </div>
     </div>
