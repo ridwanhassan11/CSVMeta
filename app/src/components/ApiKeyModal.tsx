@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactElement } from "react";
 import type {
   Provider,
   GenerationSettings,
@@ -25,7 +26,7 @@ type ProviderMetaEntry = {
   tagline: string;
   badge: string;
   keyUrl: string;
-  icon: JSX.Element;
+  icon: ReactElement;
 };
 
 const PROVIDER_META: Record<Provider, ProviderMetaEntry> = {
