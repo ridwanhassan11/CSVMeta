@@ -35,7 +35,7 @@ export default function LoginPage() {
         }}
       />
 
-      {/* FLOATING TAGS — across the entire screen, at every breakpoint */}
+      {/* FLOATING TAGS — across the entire screen */}
       <div className="pointer-events-none absolute inset-0 z-10">
         {SAMPLE_TAGS.map((tag, i) => (
           <span
@@ -61,9 +61,11 @@ export default function LoginPage() {
         <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
       </div>
 
-      {/* CENTER — sign-in card, fixed above tag layer */}
-      <div className="relative z-20 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-8 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)]">
-        <p className="text-3xl font-bold tracking-tight text-white">Welcome back</p>
+      {/* CENTER — sign-in card, all content centered */}
+      <div className="relative z-20 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.06] backdrop-blur-xl p-8 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.6)] text-center">
+        <p className="text-3xl font-bold tracking-tight text-white">
+          Welcome back to CSVMeta
+        </p>
         <h1 className="mt-2 text-sm font-medium text-white/60">Sign in to your account</h1>
         <p className="mt-2 text-sm text-white/60">Use your Google account to continue.</p>
 
@@ -110,7 +112,7 @@ export default function LoginPage() {
           <div className="h-px flex-1 bg-white/10" />
         </div>
 
-        <p className="mt-6 text-[11px] leading-relaxed text-white/40">
+        <p className="mt-6 text-[11px] leading-relaxed text-white/40 text-center">
           By signing in, you agree to CSVMeta&apos;s Terms and Privacy Policy.
         </p>
       </div>
