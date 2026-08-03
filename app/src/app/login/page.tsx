@@ -40,27 +40,23 @@ export default function LoginPage() {
           <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
         </div>
 
-        {/* signature visual: drag-and-drop zone with tags rising off it */}
+        {/* signature visual: photo silhouette with tags rising off it */}
         <div className="relative z-10 flex-1 flex items-center justify-center">
           <div className="relative h-64 w-64">
-            {/* frame representing a drag-and-drop upload zone */}
-            <div className="absolute inset-0 rounded-2xl border-2 border-dashed border-white/25 bg-white/[0.04] backdrop-blur-sm shadow-2xl flex flex-col items-center justify-center gap-3">
-              <div className="dropzone-pulse flex h-14 w-14 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-6 w-6 opacity-90"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-              </div>
-              <p className="text-xs font-medium text-white/60">ছবি টেনে এনে ছাড়ুন</p>
+            {/* frame representing an uploaded photo */}
+            <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-2xl">
+              <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-[#7C5CFC]/40 via-[#3E3B6B]/40 to-[#F0A93E]/30" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="1.4"
+                className="absolute inset-0 m-auto h-10 w-10 opacity-70"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="2" />
+                <path d="M21 16l-5.5-5.5L9 17" />
+              </svg>
             </div>
 
             {/* floating keyword chips */}
@@ -179,13 +175,6 @@ export default function LoginPage() {
       </div>
 
       <style>{`
-        @keyframes dropPulse {
-          0%, 100% { transform: scale(1); opacity: 0.9; }
-          50% { transform: scale(1.08); opacity: 1; }
-        }
-        .dropzone-pulse {
-          animation: dropPulse 2.6s ease-in-out infinite;
-        }
         @keyframes tagFloat {
           0% { transform: translateY(12px); opacity: 0; }
           12% { opacity: 1; }
@@ -199,7 +188,6 @@ export default function LoginPage() {
         }
         @media (prefers-reduced-motion: reduce) {
           .tag-chip { animation: none; opacity: 0.6; }
-          .dropzone-pulse { animation: none; }
         }
       `}</style>
     </main>
