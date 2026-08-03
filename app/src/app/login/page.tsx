@@ -1,36 +1,124 @@
 import { signIn } from "@/auth";
 
+const SAMPLE_TAGS = [
+  "golden hour",
+  "aerial view",
+  "4K",
+  "copy space",
+  "minimalist",
+  "high resolution",
+  "vibrant colors",
+  "outdoors",
+  "professional",
+  "close-up",
+];
+
 export default function LoginPage() {
   return (
-    <main className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-950 px-4">
-      {/* Decorative background */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-indigo-300/30 dark:bg-indigo-500/10 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-slate-300/40 dark:bg-slate-700/20 blur-3xl" />
+    <main className="min-h-screen grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] bg-[#FAF9F6] dark:bg-[#0B0A14]">
+      {/* LEFT — brand showcase */}
+      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-[#12111F] px-14 py-12">
+        <div className="pointer-events-none absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-[#7C5CFC]/30 blur-[110px]" />
+        <div className="pointer-events-none absolute bottom-[-8rem] right-[-6rem] h-[24rem] w-[24rem] rounded-full bg-[#F0A93E]/20 blur-[100px]" />
+
         <div
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
+            <img src="/logo-icon.png" alt="" className="h-5 w-5 object-contain" />
+          </div>
+          <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
+        </div>
+
+        <div className="relative z-10 flex-1 flex items-center justify-center">
+          <div className="relative h-64 w-64">
+            <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-2xl">
+              <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-[#7C5CFC]/40 via-[#3E3B6B]/40 to-[#F0A93E]/30" />
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="1.4"
+                className="absolute inset-0 m-auto h-10 w-10 opacity-70"
+              >
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <circle cx="9" cy="10" r="2" />
+                <path d="M21 16l-5.5-5.5L9 17" />
+              </svg>
+            </div>
+
+            {SAMPLE_TAGS.map((tag, i) => (
+              <span
+                key={tag}
+                className="tag-chip absolute rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 font-mono text-[11px] text-white/70 backdrop-blur-md whitespace-nowrap"
+                style={{
+                  left: `${(i * 37) % 100}%`,
+                  top: `${(i * 53) % 100}%`,
+                  animationDelay: `${i * 0.9}s`,
+                  animationDuration: `${7 + (i % 4)}s`,
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative z-10 max-w-md">
+          <h2 className="text-[1.75rem] font-semibold leading-snug tracking-tight text-white">
+            প্রতিটা ছবি থেকে,
+            <br />
+            <span className="bg-gradient-to-r from-[#B9A7FF] to-[#F0A93E] bg-clip-text text-transparent">
+              নিখুঁত মেটাডেটা।
+            </span>
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/50">
+            Adobe Stock, Shutterstock, Freepik — যেকোনো প্ল্যাটফর্মের জন্য টাইটেল, ডেসক্রিপশন ও কীওয়ার্ড
+            সেকেন্ডেই তৈরি করুন AI দিয়ে।
+          </p>
+        </div>
+      </div>
+
+      {/* RIGHT — sign-in */}
+      <div className="relative flex items-center justify-center px-6 py-16">
+        <div
+          className="pointer-events-none absolute inset-0 lg:hidden opacity-[0.05]"
           style={{
             backgroundImage:
               "linear-gradient(to right, #64748b 1px, transparent 1px), linear-gradient(to bottom, #64748b 1px, transparent 1px)",
             backgroundSize: "40px 40px",
           }}
         />
-      </div>
 
-      <div className="relative w-full max-w-sm">
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-10 text-center shadow-xl shadow-slate-200/50 dark:shadow-black/30">
-          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl overflow-hidden shadow-md">
-            <img src="/logo-icon.png" alt="CSVMeta logo" className="h-full w-full object-contain" />
+        <div className="relative w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#12111F]/5 dark:bg-white/10 ring-1 ring-[#12111F]/10 dark:ring-white/15">
+              <img src="/logo-icon.png" alt="" className="h-5 w-5 object-contain" />
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-slate-800 dark:text-white/90">
+              CSVMeta
+            </span>
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">CSVMeta</h1>
-          <p className="text-xs font-medium text-slate-400 mb-6">AI Metadata Platform</p>
-
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
-            চালিয়ে যেতে আপনার Google অ্যাকাউন্ট দিয়ে সাইন ইন করুন
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7C5CFC] dark:text-[#B9A7FF]">
+            Welcome back
+          </p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            আপনার অ্যাকাউন্টে সাইন ইন করুন
+          </h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            চালিয়ে যেতে আপনার Google অ্যাকাউন্ট ব্যবহার করুন — কোনো পাসওয়ার্ড লাগবে না।
           </p>
 
           <form
+            className="mt-8"
             action={async () => {
               "use server";
               await signIn("google", { redirectTo: "/" });
@@ -38,7 +126,7 @@ export default function LoginPage() {
           >
             <button
               type="submit"
-              className="group flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 hover:shadow-md transition"
+              className="group flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-white shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:bg-white/[0.07] transition"
             >
               <svg viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
                 <path
@@ -62,15 +150,38 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-8 text-[11px] text-slate-400 leading-relaxed">
-            সাইন ইন করার মাধ্যমে আপনি আমাদের শর্তাবলী মেনে নিচ্ছেন
+          <div className="mt-8 flex items-center gap-4 text-[11px] text-slate-400 dark:text-slate-500">
+            <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+            <span>নিরাপদ ও এনক্রিপ্টেড</span>
+            <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+          </div>
+
+          <p className="mt-6 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
+            সাইন ইন করার মাধ্যমে আপনি CSVMeta-এর শর্তাবলী ও গোপনীয়তা নীতি মেনে নিচ্ছেন।
+          </p>
+
+          <p className="mt-10 text-xs text-slate-400 dark:text-slate-600">
+            © {new Date().getFullYear()} CSVMeta — Powered by AI
           </p>
         </div>
-
-        <p className="mt-6 text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} CSVMeta — Powered by AI
-        </p>
       </div>
+
+      <style>{`
+        @keyframes tagFloat {
+          0% { transform: translateY(12px); opacity: 0; }
+          12% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateY(-140px); opacity: 0; }
+        }
+        .tag-chip {
+          animation-name: tagFloat;
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .tag-chip { animation: none; opacity: 0.6; }
+        }
+      `}</style>
     </main>
   );
 }
