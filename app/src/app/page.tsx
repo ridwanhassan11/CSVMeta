@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
-import ControlsPanel, { GenerationSettings, Provider } from "../components/ControlsPanel";
+import ControlsPanel, { GenerationSettings, Provider } from "./components/ControlsPanel";
 import UploadCard from "../components/UploadCard";
 import PreviewGrid from "../components/PreviewGrid";
 import ApiKeyModal from "../components/ApiKeyModal";
