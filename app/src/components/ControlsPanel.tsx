@@ -54,25 +54,22 @@ const PLATFORMS: { id: Platform; label: string }[] = [
   { id: "pond5", label: "Pond5" },
 ];
 
-const GEMINI_MODELS: { id: GeminiModel; label: string }[] = [
-  { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro, best reasoning" },
-  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash, fast, default" },
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-  { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite, cheapest" },
-];
-
-const MISTRAL_MODELS: { id: MistralModel; label: string }[] = [
-  { id: "pixtral-large-latest", label: "Pixtral Large, best reasoning" },
-  { id: "pixtral-12b-2409", label: "Pixtral 12B, fast" },
-];
-
-const OPENAI_MODELS: { id: OpenAIModel; label: string }[] = [
-  { id: "gpt-4o", label: "GPT-4o" },
-  { id: "gpt-4o-mini", label: "GPT-4o mini, fast" },
-  { id: "gpt-4.1", label: "GPT-4.1" },
-  { id: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-];
+function getCurrentModelLabel(settings: GenerationSettings): string {
+  switch (settings.provider) {
+    case "gemini":
+      return settings.geminiModel;
+    case "mistral":
+      return settings.mistralModel;
+    case "openai":
+      return settings.openaiModel;
+    case "openrouter":
+      return settings.openrouterModel || "কোনো মডেল সেট করা নেই";
+    case "groq":
+      return "qwen/qwen3.6-27b";
+    default:
+      return "";
+  }
+}
 
 export default function ControlsPanel({
   settings,
@@ -88,101 +85,33 @@ export default function ControlsPanel({
   return (
     <div className="w-full max-w-[340px] shrink-0 space-y-4">
       <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 transition-colors">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-semibold text-slate-900 dark:text-white">Controls</p>
-            <p className="text-xs text-slate-400 mt-0.5">{PROVIDER_LABELS[settings.provider]}</p>
-          </div>
-          <button
-            onClick={onOpenKeys}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-900 dark:border-white bg-slate-900 dark:bg-white px-3 py-2 text-xs font-medium text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-100 transition"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-3.5 w-3.5"
-            >
-              <circle cx="7.5" cy="15.5" r="5.5" />
-              <path d="m21 2-9.6 9.6" />
-              <path d="m15.5 7.5 3 3L22 7l-3-3" />
-            </svg>
-            API Keys
-          </button>
-        </div>
+        <p className="font-semibold text-slate-900 dark:text-white">Controls</p>
 
-        <select
-          value={settings.provider}
-          onChange={(e) => onChange({ provider: e.target.value as Provider })}
+        {/* 👇 এখানে ক্লিক করলে provider + model + API key ম্যানেজ করার পপআপ খুলবে */}
+        <button
+          onClick={onOpenKeys}
           disabled={disabled}
-          className="mt-3 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50 outline-none appearance-none"
+          className="mt-3 flex w-full items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 text-left disabled:opacity-50 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
         >
-          <option value="gemini">Google Gemini</option>
-          <option value="groq">Groq, llama-4-maverick</option>
-          <option value="mistral">Mistral AI</option>
-          <option value="openai">OpenAI</option>
-          <option value="openrouter">OpenRouter</option>
-        </select>
-
-        {settings.provider === "gemini" && (
-          <select
-            value={settings.geminiModel}
-            onChange={(e) => onChange({ geminiModel: e.target.value as GeminiModel })}
-            disabled={disabled}
-            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none appearance-none"
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+              {PROVIDER_LABELS[settings.provider]}
+            </p>
+            <p className="truncate text-xs text-slate-400">{getCurrentModelLabel(settings)}</p>
+          </div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4 shrink-0 text-slate-400"
           >
-            {GEMINI_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {settings.provider === "mistral" && (
-          <select
-            value={settings.mistralModel}
-            onChange={(e) => onChange({ mistralModel: e.target.value as MistralModel })}
-            disabled={disabled}
-            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none appearance-none"
-          >
-            {MISTRAL_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {settings.provider === "openai" && (
-          <select
-            value={settings.openaiModel}
-            onChange={(e) => onChange({ openaiModel: e.target.value as OpenAIModel })}
-            disabled={disabled}
-            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none appearance-none"
-          >
-            {OPENAI_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {settings.provider === "openrouter" && (
-          <input
-            type="text"
-            value={settings.openrouterModel}
-            onChange={(e) => onChange({ openrouterModel: e.target.value })}
-            disabled={disabled}
-            placeholder="e.g. google/gemini-2.5-flash"
-            className="mt-2 w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-50 outline-none"
-          />
-        )}
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
 
         <div className="mt-4 flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
           <button

@@ -149,7 +149,6 @@ export default function ApiKeyModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="flex w-full max-w-3xl overflow-hidden rounded-3xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xl">
-        {/* LEFT — provider sidebar */}
         <div className="w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-4">
           <p className="px-2 pb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             Providers
@@ -158,7 +157,10 @@ export default function ApiKeyModal({
             {(Object.keys(PROVIDER_META) as Provider[]).map((p) => (
               <button
                 key={p}
-                onClick={() => setActiveTab(p)}
+                onClick={() => {
+                  setActiveTab(p);
+                  onChange({ provider: p });
+                }}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
                   activeTab === p
                     ? "bg-[#7C5CFC]/10 text-[#7C5CFC] dark:bg-[#7C5CFC]/20 dark:text-[#B9A7FF]"
@@ -187,7 +189,6 @@ export default function ApiKeyModal({
           </p>
         </div>
 
-        {/* RIGHT — key management panel */}
         <div className="flex-1 p-6">
           <div className="flex items-start justify-between">
             <div>
@@ -214,7 +215,6 @@ export default function ApiKeyModal({
             </a>
           </div>
 
-          {/* model selector */}
           <div className="mt-5">
             <p className="mb-1.5 text-[11px] font-semibold text-slate-400">MODEL</p>
             {activeTab === "gemini" && (
@@ -272,7 +272,6 @@ export default function ApiKeyModal({
             )}
           </div>
 
-          {/* key input */}
           <div className="mt-5">
             <p className="mb-1.5 text-[11px] font-semibold text-slate-400">API KEY</p>
             <div className="flex gap-2">
@@ -296,7 +295,6 @@ export default function ApiKeyModal({
             </div>
           </div>
 
-          {/* stored keys */}
           <div className="mt-6">
             <p className="mb-2 text-[11px] font-semibold text-slate-400">
               STORED KEYS ({keys.length})
