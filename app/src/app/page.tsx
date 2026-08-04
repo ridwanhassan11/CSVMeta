@@ -5,7 +5,6 @@ import Sidebar from "../components/Sidebar";
 import ControlsPanel, { GenerationSettings, Provider } from "../components/ControlsPanel";
 import UploadCard from "../components/UploadCard";
 import PreviewGrid from "../components/PreviewGrid";
-import ResultCard from "../components/ResultCard";
 import ApiKeyModal from "../components/ApiKeyModal";
 
 export type ImageItem = {
@@ -418,7 +417,6 @@ export default function Home() {
             onRemove={removeImage}
             onUpdate={updateImage}
           />
-          <ResultCard image={selectedImage} onUpdate={updateImage} />
         </div>
 
         <ApiKeyModal
