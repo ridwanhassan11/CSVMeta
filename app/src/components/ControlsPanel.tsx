@@ -273,7 +273,8 @@ export default function ControlsPanel({
               </div>
               <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{meta.tagline}</p>
             </div>
-            
+
+            <a
               href={meta.keyUrl}
               target="_blank"
               rel="noreferrer"
