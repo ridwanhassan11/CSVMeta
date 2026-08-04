@@ -6,6 +6,7 @@ import ControlsPanel, { GenerationSettings, Provider } from "../components/Contr
 import UploadCard from "../components/UploadCard";
 import PreviewGrid from "../components/PreviewGrid";
 import ResultCard from "../components/ResultCard";
+import ApiKeyModal from "../components/ApiKeyModal";
 
 export type ImageItem = {
   id: string;
@@ -83,6 +84,8 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const stopRef = useRef(false);
+
+  const [showKeys, setShowKeys] = useState(false);
 
   const [savedKeys, setSavedKeys] = useState<Record<Provider, string[]>>({
     gemini: [],
@@ -173,7 +176,7 @@ export default function Home() {
       if (!activeKey) {
         updateImage(img.id, {
           status: "error",
-          error: `No ${settings.provider} API key added. যোগ করার জন্য নিচের API Key বক্সটি ব্যবহার করুন।`,
+          error: `No ${settings.provider} API key added. Click "API Keys" to add one.`,
         });
         return;
       }
@@ -327,10 +330,7 @@ export default function Home() {
           <ControlsPanel
             settings={settings}
             onChange={updateSettings}
-            savedKeys={savedKeys}
-            addKey={addKey}
-            removeKey={removeKey}
-            setActiveKey={setActiveKey}
+            onOpenKeys={() => setShowKeys(true)}
             disabled={generating}
           />
         </div>
@@ -420,6 +420,17 @@ export default function Home() {
           />
           <ResultCard image={selectedImage} onUpdate={updateImage} />
         </div>
+
+        <ApiKeyModal
+          open={showKeys}
+          settings={settings}
+          onChange={updateSettings}
+          savedKeys={savedKeys}
+          addKey={addKey}
+          removeKey={removeKey}
+          setActiveKey={setActiveKey}
+          close={() => setShowKeys(false)}
+        />
       </section>
     </main>
   );
