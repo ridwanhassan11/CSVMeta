@@ -322,9 +322,23 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white transition-colors">
+    <main className="relative min-h-screen overflow-hidden bg-slate-50 dark:bg-[#0B0A14] text-slate-900 dark:text-white transition-colors">
+      {/* ambient background — dark mode only */}
+      <div className="pointer-events-none absolute inset-0 hidden dark:block">
+        <div className="absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-[#7C5CFC]/20 blur-[120px]" />
+        <div className="absolute top-1/3 -right-24 h-[24rem] w-[24rem] rounded-full bg-[#F0A93E]/10 blur-[110px]" />
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+      </div>
+
       <Sidebar />
-      <section className="ml-64 p-8 flex gap-6 items-start">
+      <section className="relative z-10 ml-64 p-8 flex gap-6 items-start">
         <div className="sticky top-8 self-start w-full max-w-[340px] shrink-0">
           <ControlsPanel
             settings={settings}
