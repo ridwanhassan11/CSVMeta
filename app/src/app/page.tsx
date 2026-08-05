@@ -322,20 +322,26 @@ export default function Home() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-50 dark:bg-[#0B0A14] text-slate-900 dark:text-white transition-colors">
+    <main
+      className="relative min-h-screen overflow-hidden bg-slate-50 dark:text-white text-slate-900 transition-colors"
+      style={{ backgroundColor: "#0B0A14" }}
+    >
       {/* ambient background — dark mode only */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block">
-        <div className="absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-[#7C5CFC]/20 blur-[120px]" />
-        <div className="absolute top-1/3 -right-24 h-[24rem] w-[24rem] rounded-full bg-[#F0A93E]/10 blur-[110px]" />
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-          }}
-        />
-      </div>
+      <div
+        className="pointer-events-none absolute inset-0 hidden dark:block"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 15% 10%, rgba(124,92,252,0.35), transparent 40%), radial-gradient(circle at 85% 30%, rgba(240,169,62,0.18), transparent 45%), radial-gradient(circle at 50% 90%, rgba(124,92,252,0.15), transparent 50%)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0 hidden opacity-[0.08] dark:block"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
 
       <Sidebar />
       <section className="relative z-10 ml-64 p-8 flex gap-6 items-start">
