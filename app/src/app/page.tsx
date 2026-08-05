@@ -328,7 +328,7 @@ export default function Home() {
         className="pointer-events-none absolute inset-0 dark:hidden"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 15% 10%, rgba(124,92,252,0.08), transparent 40%), radial-gradient(circle at 85% 25%, rgba(240,169,62,0.06), transparent 45%), radial-gradient(circle at 50% 95%, rgba(124,92,252,0.05), transparent 50%)",
+            "radial-gradient(circle at 15% 10%, rgba(124,92,252,0.22), transparent 45%), radial-gradient(circle at 85% 25%, rgba(240,169,62,0.16), transparent 50%), radial-gradient(circle at 50% 95%, rgba(124,92,252,0.14), transparent 55%)",
         }}
       />
       {/* ambient background — dark mode */}
@@ -341,7 +341,7 @@ export default function Home() {
       />
       {/* grid lines — both modes */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 opacity-[0.06] dark:opacity-[0.04]"
         style={{
           backgroundImage:
             "linear-gradient(to right, #64748b 1px, transparent 1px), linear-gradient(to bottom, #64748b 1px, transparent 1px)",
