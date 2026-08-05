@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   toggleBlockUser,
@@ -32,6 +32,14 @@ export default function AdminDashboard({
   const [filter, setFilter] = useState<"all" | "blocked" | "active">("all");
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const [activityCache, setActivityCache] = useState<Record<string, ActivityEntry[]>>({});
+
+  // 👇 প্রতি ৩০ সেকেন্ডে পেজ অটো-রিফ্রেশ, যাতে Online status ও Activity লাইভ আপডেট হয়
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const users = initialUsers.filter((u) => {
     const matchesSearch =
