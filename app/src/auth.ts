@@ -13,10 +13,10 @@ async function logActivity(email: string, type: "signin" | "signout") {
 
   try {
     await redis.lpush(`activity:${email}`, entry);
-    await redis.ltrim(`activity:${email}`, 0, 199); // প্রতি ইউজারের সর্বশেষ ২০০টা ইভেন্ট রাখা হবে
+    await redis.ltrim(`activity:${email}`, 0, 199);
 
     await redis.lpush("activity_log", entry);
-    await redis.ltrim("activity_log", 0, 999); // গ্লোবাল লগের সর্বশেষ ১০০০টা ইভেন্ট
+    await redis.ltrim("activity_log", 0, 999);
   } catch (err) {
     console.error("Failed to log activity:", err);
   }
@@ -28,7 +28,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user }) {
       if (!user?.email) return false;
 
-      // 👇 ব্লক করা ইমেইল হলে সাইন-ইন আটকে দেওয়া হবে
       try {
         const record = await redis.hgetall(`user:${user.email}`);
         if (record && (record as any).blocked === "true") {
@@ -58,7 +57,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async signOut(message) {
-      // JWT সেশনে event payload-এ token থাকে
       const email = (message as any)?.token?.email;
       if (!email) return;
       try {

@@ -45,6 +45,7 @@ export default function AdminDashboard({
 
   const totalUsers = initialUsers.length;
   const blockedCount = initialUsers.filter((u) => u.blocked).length;
+  const onlineNow = initialUsers.filter((u) => u.online).length;
   const today = new Date().toDateString();
   const signedInToday = initialUsers.filter(
     (u) => u.lastSignIn && new Date(u.lastSignIn).toDateString() === today
@@ -79,9 +80,17 @@ export default function AdminDashboard({
 
   function exportCSV() {
     const esc = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
-    const header = "Name,Email,Last Sign In,Last Sign Out,Blocked";
+    const header = "Name,Email,Location,Online,Last Sign In,Last Sign Out,Blocked";
     const rows = initialUsers.map((u) =>
-      [esc(u.name), esc(u.email), esc(formatTime(u.lastSignIn)), esc(formatTime(u.lastSignOut)), u.blocked ? "Yes" : "No"].join(",")
+      [
+        esc(u.name),
+        esc(u.email),
+        esc(u.location || ""),
+        u.online ? "Yes" : "No",
+        esc(formatTime(u.lastSignIn)),
+        esc(formatTime(u.lastSignOut)),
+        u.blocked ? "Yes" : "No",
+      ].join(",")
     );
     const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -109,10 +118,14 @@ export default function AdminDashboard({
         </div>
 
         {/* stats cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
             <p className="text-xs font-semibold text-slate-400">TOTAL USERS</p>
             <p className="mt-1 text-2xl font-bold">{totalUsers}</p>
+          </div>
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+            <p className="text-xs font-semibold text-slate-400">ONLINE NOW</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{onlineNow}</p>
           </div>
           <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
             <p className="text-xs font-semibold text-slate-400">BLOCKED</p>
@@ -120,7 +133,7 @@ export default function AdminDashboard({
           </div>
           <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
             <p className="text-xs font-semibold text-slate-400">SIGNED IN TODAY</p>
-            <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{signedInToday}</p>
+            <p className="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400">{signedInToday}</p>
           </div>
         </div>
 
@@ -158,11 +171,19 @@ export default function AdminDashboard({
               {users.map((u) => (
                 <div key={u.email}>
                   <div className="flex flex-wrap items-center gap-4 p-4">
-                    <img
-                      src={u.image || "/logo-icon.png"}
-                      alt={u.name}
-                      className="h-10 w-10 rounded-full object-cover shrink-0"
-                    />
+                    <div className="relative shrink-0">
+                      <img
+                        src={u.image || "/logo-icon.png"}
+                        alt={u.name}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                      <span
+                        className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white dark:border-slate-900 ${
+                          u.online ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
+                        }`}
+                        title={u.online ? "অনলাইন" : "অফলাইন"}
+                      />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate font-semibold text-sm">{u.name || "নাম নেই"}</p>
@@ -171,11 +192,17 @@ export default function AdminDashboard({
                             Blocked
                           </span>
                         )}
+                        {u.online && (
+                          <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                            Online
+                          </span>
+                        )}
                       </div>
                       <p className="truncate text-xs text-slate-400">{u.email}</p>
                     </div>
 
                     <div className="text-xs text-slate-400 shrink-0 hidden md:block">
+                      {u.location && <p className="mb-0.5">📍 {u.location}</p>}
                       <p>সর্বশেষ লগইন: {formatTime(u.lastSignIn)}</p>
                       <p>সর্বশেষ লগআউট: {formatTime(u.lastSignOut)}</p>
                     </div>

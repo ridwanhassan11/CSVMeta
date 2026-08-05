@@ -12,8 +12,11 @@ export type UserRecord = {
   email: string;
   name: string;
   image: string;
+  location?: string;
   lastSignIn?: string;
   lastSignOut?: string;
+  lastActive?: string;
+  online: boolean;
   blocked: boolean;
 };
 
@@ -27,15 +30,21 @@ export async function getAllUsers(): Promise<UserRecord[]> {
   const emails = (await redis.smembers("all_users")) as string[];
   if (!emails || emails.length === 0) return [];
 
+  const now = Date.now();
+
   const users = await Promise.all(
     emails.map(async (email) => {
       const data = (await redis.hgetall(`user:${email}`)) as Record<string, string> | null;
+      const lastActiveTs = data?.lastActive ? new Date(data.lastActive).getTime() : 0;
       return {
         email,
         name: data?.name || "",
         image: data?.image || "",
+        location: data?.location || "",
         lastSignIn: data?.lastSignIn,
         lastSignOut: data?.lastSignOut,
+        lastActive: data?.lastActive,
+        online: now - lastActiveTs < 60000,
         blocked: data?.blocked === "true",
       };
     })
@@ -80,4 +89,17 @@ export async function getGlobalActivity(): Promise<ActivityEntry[]> {
       }
     })
     .filter(Boolean);
+}
+
+export async function updateHeartbeat(email: string, location?: string) {
+  const update: Record<string, string> = {
+    lastActive: new Date().toISOString(),
+  };
+  if (location) update.location = location;
+
+  try {
+    await redis.hset(`user:${email}`, update);
+  } catch (err) {
+    console.error("heartbeat update failed:", err);
+  }
 }
