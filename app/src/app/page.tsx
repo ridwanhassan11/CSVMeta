@@ -322,23 +322,29 @@ export default function Home() {
   }
 
   return (
-    <main
-      className="relative min-h-screen overflow-hidden bg-slate-50 dark:text-white text-slate-900 transition-colors"
-      style={{ backgroundColor: "#0B0A14" }}
-    >
-      {/* ambient background — dark mode only */}
+    <main className="relative min-h-screen overflow-hidden bg-slate-50 dark:bg-[#0B0A14] text-slate-900 dark:text-white transition-colors">
+      {/* ambient background — light mode */}
+      <div
+        className="pointer-events-none absolute inset-0 dark:hidden"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 15% 10%, rgba(124,92,252,0.08), transparent 40%), radial-gradient(circle at 85% 25%, rgba(240,169,62,0.06), transparent 45%), radial-gradient(circle at 50% 95%, rgba(124,92,252,0.05), transparent 50%)",
+        }}
+      />
+      {/* ambient background — dark mode */}
       <div
         className="pointer-events-none absolute inset-0 hidden dark:block"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 15% 10%, rgba(124,92,252,0.35), transparent 40%), radial-gradient(circle at 85% 30%, rgba(240,169,62,0.18), transparent 45%), radial-gradient(circle at 50% 90%, rgba(124,92,252,0.15), transparent 50%)",
+            "radial-gradient(circle at 15% 10%, rgba(124,92,252,0.16), transparent 40%), radial-gradient(circle at 85% 25%, rgba(240,169,62,0.08), transparent 45%), radial-gradient(circle at 50% 95%, rgba(124,92,252,0.08), transparent 50%)",
         }}
       />
+      {/* grid lines — both modes */}
       <div
-        className="pointer-events-none absolute inset-0 hidden opacity-[0.08] dark:block"
+        className="pointer-events-none absolute inset-0 opacity-[0.03] dark:opacity-[0.04]"
         style={{
           backgroundImage:
-            "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
+            "linear-gradient(to right, #64748b 1px, transparent 1px), linear-gradient(to bottom, #64748b 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }}
       />
