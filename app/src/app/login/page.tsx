@@ -129,108 +129,46 @@ const FEATURES = [
 
 export default function LoginPage() {
   return (
-    <main className="bg-[#FAF9F6] dark:bg-[#0B0A14]">
-      {/* ===== HERO ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] lg:min-h-screen">
-        <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-[#12111F] px-14 py-12">
-          <div className="pointer-events-none absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-[#7C5CFC]/30 blur-[110px]" />
-          <div className="pointer-events-none absolute bottom-[-8rem] right-[-6rem] h-[24rem] w-[24rem] rounded-full bg-[#F0A93E]/20 blur-[100px]" />
-
+    <main className="bg-[#0B0A14]">
+      {/* ===== HERO — original single-panel design, unchanged ===== */}
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#0B0A14] px-4">
+        <div className="pointer-events-none absolute inset-0">
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.06]"
+            className="absolute inset-0 opacity-[0.06]"
             style={{
               backgroundImage:
                 "linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)",
               backgroundSize: "48px 48px",
             }}
           />
+          <div className="absolute -top-40 -left-24 h-[28rem] w-[28rem] rounded-full bg-[#7C5CFC]/25 blur-[120px]" />
+          <div className="absolute bottom-[-8rem] right-[-6rem] h-[24rem] w-[24rem] rounded-full bg-[#F0A93E]/15 blur-[110px]" />
 
-          <div className="relative z-10 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
-              <img src="/logo-icon.png" alt="" className="h-5 w-5 object-contain" />
-            </div>
-            <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
-          </div>
-
-          <div className="relative z-10 flex-1 flex items-center justify-center">
-            <div className="relative h-64 w-64">
-              <div className="absolute inset-0 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.08] to-transparent backdrop-blur-sm shadow-2xl">
-                <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-[#7C5CFC]/40 via-[#3E3B6B]/40 to-[#F0A93E]/30" />
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="1.4"
-                  className="absolute inset-0 m-auto h-10 w-10 opacity-70"
-                >
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <circle cx="9" cy="10" r="2" />
-                  <path d="M21 16l-5.5-5.5L9 17" />
-                </svg>
-              </div>
-
-              {SAMPLE_TAGS.map((tag, i) => (
-                <span
-                  key={tag}
-                  className="tag-chip absolute rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 font-mono text-[11px] text-white/70 backdrop-blur-md whitespace-nowrap"
-                  style={{
-                    left: `${(i * 37) % 100}%`,
-                    top: `${(i * 53) % 100}%`,
-                    animationDelay: `${i * 0.9}s`,
-                    animationDuration: `${7 + (i % 4)}s`,
-                  }}
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative z-10 max-w-md">
-            <h2 className="text-[1.75rem] font-semibold leading-snug tracking-tight text-white">
-              প্রতিটা ছবি থেকে,
-              <br />
-              <span className="bg-gradient-to-r from-[#B9A7FF] to-[#F0A93E] bg-clip-text text-transparent">
-                নিখুঁত মেটাডেটা।
-              </span>
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-white/50">
-              Adobe Stock, Shutterstock, Freepik — যেকোনো প্ল্যাটফর্মের জন্য টাইটেল, ডেসক্রিপশন ও কীওয়ার্ড
-              সেকেন্ডেই তৈরি করুন AI দিয়ে।
-            </p>
-          </div>
+          {SAMPLE_TAGS.map((tag, i) => (
+            <span
+              key={tag}
+              className="tag-chip absolute rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 font-mono text-[11px] text-white/70 backdrop-blur-md whitespace-nowrap"
+              style={{
+                left: `${(i * 19 + 5) % 92}%`,
+                top: `${(i * 31 + 3) % 90}%`,
+                animationDelay: `${i * 0.9}s`,
+                animationDuration: `${7 + (i % 4)}s`,
+              }}
+            >
+              {tag}
+            </span>
+          ))}
         </div>
 
-        {/* RIGHT — sign-in */}
-        <div className="relative flex items-center justify-center px-6 py-16">
-          <div
-            className="pointer-events-none absolute inset-0 lg:hidden opacity-[0.05]"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, #64748b 1px, transparent 1px), linear-gradient(to bottom, #64748b 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
-          />
+        <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
+          <span className="text-sm font-semibold tracking-wide text-white/90">CSVMeta</span>
+        </div>
 
-          <div className="relative w-full max-w-sm">
-            <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#12111F]/5 dark:bg-white/10 ring-1 ring-[#12111F]/10 dark:ring-white/15">
-                <img src="/logo-icon.png" alt="" className="h-5 w-5 object-contain" />
-              </div>
-              <span className="text-sm font-semibold tracking-wide text-slate-800 dark:text-white/90">
-                CSVMeta
-              </span>
-            </div>
-
-            <p className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Welcome back
-            </p>
-            <h1 className="mt-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-              আপনার অ্যাকাউন্টে সাইন ইন করুন
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              চালিয়ে যেতে আপনার Google অ্যাকাউন্ট ব্যবহার করুন — কোনো পাসওয়ার্ড লাগবে না।
-            </p>
+        <div className="relative z-10 w-full max-w-sm">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-10 text-center shadow-2xl">
+            <p className="text-3xl font-bold tracking-tight text-white">Welcome back to CSVMeta</p>
+            <p className="mt-3 text-sm text-white/60">Sign in to your account</p>
+            <p className="mt-1 text-sm text-white/60">Use your Google account to continue.</p>
 
             <form
               className="mt-8"
@@ -241,7 +179,7 @@ export default function LoginPage() {
             >
               <button
                 type="submit"
-                className="group flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-slate-700 dark:text-white shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:bg-white/[0.07] transition"
+                className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-slate-800 shadow-sm hover:shadow-md transition"
               >
                 <svg viewBox="0 0 48 48" className="h-5 w-5 shrink-0">
                   <path
@@ -261,38 +199,41 @@ export default function LoginPage() {
                     d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
                   />
                 </svg>
-                <span>Sign in with Google</span>
+                Sign in with Google
               </button>
             </form>
 
-            <div className="mt-8 flex items-center gap-4 text-[11px] text-slate-400 dark:text-slate-500">
-              <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-              <span>নিরাপদ ও এনক্রিপ্টেড</span>
-              <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+            <div className="mt-8 flex items-center gap-4 text-[11px] text-white/40">
+              <div className="h-px flex-1 bg-white/10" />
+              <span>Secure & encrypted</span>
+              <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            <p className="mt-6 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
-              সাইন ইন করার মাধ্যমে আপনি CSVMeta-এর শর্তাবলী ও গোপনীয়তা নীতি মেনে নিচ্ছেন।
+            <p className="mt-6 text-[11px] leading-relaxed text-white/40">
+              By signing in, you agree to CSVMeta&apos;s Terms and Privacy Policy.
             </p>
+          </div>
 
-            {/* scroll hint */}
-            <div className="mt-10 hidden lg:flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 animate-bounce">
-                <path d="M12 5v14M19 12l-7 7-7-7" />
-              </svg>
-              CSVMeta সম্পর্কে আরও জানতে নিচে স্ক্রল করুন
-            </div>
+          <p className="mt-6 text-center text-xs text-white/30">
+            © {new Date().getFullYear()} CSVMeta Powered by AI
+          </p>
+
+          <div className="mt-6 flex items-center justify-center gap-2 text-[11px] text-white/30">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 animate-bounce">
+              <path d="M12 5v14M19 12l-7 7-7-7" />
+            </svg>
+            Scroll down to learn more about CSVMeta
           </div>
         </div>
       </div>
 
       {/* ===== HOW IT WORKS ===== */}
-      <section className="border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#0E0D1A] px-6 py-20 lg:px-16">
+      <section className="border-t border-white/10 bg-[#0E0D1A] px-6 py-20 lg:px-16">
         <div className="mx-auto max-w-5xl">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7C5CFC] dark:text-[#B9A7FF]">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B9A7FF]">
             How it works
           </p>
-          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Image in, ready-to-upload metadata out
           </h2>
 
@@ -302,12 +243,8 @@ export default function LoginPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#7C5CFC] text-sm font-bold text-white">
                   {i + 1}
                 </div>
-                <h3 className="mt-4 text-sm font-semibold text-slate-900 dark:text-white">
-                  {step.title}
-                </h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                  {step.desc}
-                </p>
+                <h3 className="mt-4 text-sm font-semibold text-white">{step.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/50">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -315,12 +252,12 @@ export default function LoginPage() {
       </section>
 
       {/* ===== PLATFORMS ===== */}
-      <section className="border-t border-slate-200 dark:border-white/10 bg-[#FAF9F6] dark:bg-[#0B0A14] px-6 py-20 lg:px-16">
+      <section className="border-t border-white/10 bg-[#0B0A14] px-6 py-20 lg:px-16">
         <div className="mx-auto max-w-5xl">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7C5CFC] dark:text-[#B9A7FF]">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B9A7FF]">
             Works with your platform
           </p>
-          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Export CSVs built for every marketplace
           </h2>
 
@@ -328,7 +265,7 @@ export default function LoginPage() {
             {PLATFORMS.map((p) => (
               <span
                 key={p}
-                className="rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200"
+                className="rounded-full border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-slate-200"
               >
                 {p}
               </span>
@@ -338,12 +275,12 @@ export default function LoginPage() {
       </section>
 
       {/* ===== AI PROVIDERS ===== */}
-      <section className="border-t border-slate-200 dark:border-white/10 bg-white dark:bg-[#0E0D1A] px-6 py-20 lg:px-16">
+      <section className="border-t border-white/10 bg-[#0E0D1A] px-6 py-20 lg:px-16">
         <div className="mx-auto max-w-5xl">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7C5CFC] dark:text-[#B9A7FF]">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B9A7FF]">
             Powered by leading AI
           </p>
-          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Choose the model that fits your workflow
           </h2>
 
@@ -351,12 +288,12 @@ export default function LoginPage() {
             {AI_PROVIDERS.map((p) => (
               <div
                 key={p.name}
-                className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 dark:border-white/10 bg-[#FAF9F6] dark:bg-white/[0.02] p-5 text-center"
+                className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-center"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C5CFC]/10 text-[#7C5CFC] dark:bg-[#7C5CFC]/15 dark:text-[#B9A7FF]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C5CFC]/15 text-[#B9A7FF]">
                   {p.icon}
                 </div>
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{p.name}</p>
+                <p className="text-xs font-medium text-slate-300">{p.name}</p>
               </div>
             ))}
           </div>
@@ -364,12 +301,12 @@ export default function LoginPage() {
       </section>
 
       {/* ===== FEATURES ===== */}
-      <section className="border-t border-slate-200 dark:border-white/10 bg-[#FAF9F6] dark:bg-[#0B0A14] px-6 py-20 lg:px-16">
+      <section className="border-t border-white/10 bg-[#0B0A14] px-6 py-20 lg:px-16">
         <div className="mx-auto max-w-5xl">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7C5CFC] dark:text-[#B9A7FF]">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-[#B9A7FF]">
             Built for volume
           </p>
-          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+          <h2 className="mt-3 text-center text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Everything you need to move fast
           </h2>
 
@@ -377,16 +314,14 @@ export default function LoginPage() {
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="flex gap-4 rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] p-6"
+                className="flex gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0A93E]/15 text-[#B87F0E] dark:text-[#F0A93E]">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0A93E]/15 text-[#F0A93E]">
                   {f.icon}
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{f.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                    {f.desc}
-                  </p>
+                  <h3 className="text-sm font-semibold text-white">{f.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-white/50">{f.desc}</p>
                 </div>
               </div>
             ))}
@@ -395,7 +330,7 @@ export default function LoginPage() {
       </section>
 
       {/* ===== FINAL CTA ===== */}
-      <section className="border-t border-slate-200 dark:border-white/10 bg-[#12111F] px-6 py-20 text-center lg:px-16">
+      <section className="border-t border-white/10 bg-[#12111F] px-6 py-20 text-center lg:px-16">
         <div className="mx-auto max-w-xl">
           <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Ready to speed up your metadata workflow?
