@@ -1,238 +1,51 @@
 "use client";
-
-import { useState } from "react";
-import type { ImageItem } from "../app/page";
-
-const statusStyle: Record<ImageItem["status"], string> = {
-  pending: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
-  loading: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400",
-  done: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400",
-  error: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400",
-};
-
-const fieldClass =
-  "w-full rounded-lg border border-transparent hover:border-slate-200 dark:hover:border-slate-700 bg-transparent px-2 py-1.5 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-violet-400 resize-none";
-
-export default function PreviewGrid({
-  images,
-  selectedId,
-  onSelect,
-  onRemove,
-  onUpdate,
-}: {
-  images: ImageItem[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  onRemove: (id: string) => void;
-  onUpdate: (id: string, patch: Partial<ImageItem>) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [addingId, setAddingId] = useState<string | null>(null);
-  const [newTag, setNewTag] = useState("");
-
-  if (images.length === 0) return null;
-
-  const doneCount = images.filter((i) => i.status === "done").length;
-  const q = query.trim().toLowerCase();
-  const rows = images
-    .map((img, index) => ({ img, index }))
-    .filter(({ img }) => {
-      if (!q) return true;
-      const text = [img.file.name, img.title, img.description, img.prompt, (img.keywords || []).join(" ")]
-        .join(" ")
-        .toLowerCase();
-      return text.includes(q);
-    });
-
-  function commitTag(img: ImageItem) {
-    const tag = newTag.trim();
-    if (tag) onUpdate(img.id, { keywords: [...(img.keywords || []), tag] });
-    setNewTag("");
-    setAddingId(null);
-  }
-
-  return (
-    <div className="mt-8">
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <p className="text-base font-bold text-slate-900 dark:text-white">Generated Metadata</p>
-        <span className="rounded-full bg-violet-100 dark:bg-violet-900/40 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300">
-          Live Preview ({doneCount} / {images.length})
-        </span>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search metadata..."
-          className="ml-auto w-full max-w-xs rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-violet-400"
-        />
-      </div>
-
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <table className="w-full min-w-[900px] border-collapse text-left">
-          <thead>
-            <tr className="bg-violet-600 text-sm text-white">
-              <th className="w-12 px-3 py-3 font-semibold">#</th>
-              <th className="w-36 px-3 py-3 font-semibold">Image</th>
-              <th className="w-56 px-3 py-3 font-semibold">Title</th>
-              <th className="px-3 py-3 font-semibold">Tags</th>
-              <th className="w-72 px-3 py-3 font-semibold">Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ img, index }) => (
-              <tr
-                key={img.id}
-                onClick={() => onSelect(img.id)}
-                className={`group cursor-pointer border-t border-slate-200 dark:border-slate-800 align-top ${
-                  selectedId === img.id ? "bg-violet-50/60 dark:bg-violet-950/20" : ""
-                }`}
-              >
-                <td className="px-3 py-4 text-lg font-bold text-slate-900 dark:text-white">{index + 1}</td>
-
-                <td className="px-3 py-3">
-                  <div className="relative h-20 w-28 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
-                    <img src={img.previewUrl} alt={img.file.name} className="h-full w-full object-cover" />
-                    <span
-                      className={`absolute left-1 top-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusStyle[img.status]}`}
-                    >
-                      {img.status}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemove(img.id);
-                      }}
-                      className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-slate-900/80 text-[10px] text-white group-hover:flex"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </td>
-
-                {img.status !== "done" ? (
-                  <td colSpan={3} className="px-3 py-4 text-sm">
-                    <p className="truncate font-semibold text-slate-900 dark:text-white">{img.file.name}</p>
-                    {img.status === "pending" && <p className="mt-1 text-slate-400">Waiting to generate...</p>}
-                    {img.status === "loading" && (
-                      <p className="mt-1 text-amber-600 dark:text-amber-400">Generating...</p>
-                    )}
-                    {img.status === "error" && (
-                      <p className="mt-1 break-words text-rose-600 dark:text-rose-400">{img.error}</p>
-                    )}
-                  </td>
-                ) : img.prompt !== undefined ? (
-                  <>
-                    <td className="px-3 py-3 text-sm font-semibold text-slate-900 dark:text-white">
-                      <p className="break-words">{img.file.name}</p>
-                    </td>
-                    <td colSpan={2} className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                      <p className="mb-1 text-[11px] font-semibold text-slate-400">GENERATED PROMPT</p>
-                      <textarea
-                        value={img.prompt || ""}
-                        rows={3}
-                        onChange={(e) => onUpdate(img.id, { prompt: e.target.value })}
-                        className={fieldClass}
-                      />
-                      <button
-                        onClick={() => navigator.clipboard.writeText(img.prompt || "")}
-                        className="mt-2 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700"
-                      >
-                        Copy Prompt
-                      </button>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                      <textarea
-                        value={img.title || ""}
-                        rows={3}
-                        onChange={(e) => onUpdate(img.id, { title: e.target.value })}
-                        className={`${fieldClass} font-semibold`}
-                      />
-                      <button
-                        onClick={() => navigator.clipboard.writeText(img.title || "")}
-                        className="ml-1 text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline"
-                      >
-                        Copy title
-                      </button>
-                    </td>
-
-                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {(img.keywords || []).map((k, i) => (
-                          <span
-                            key={`${k}-${i}`}
-                            className="inline-flex items-center gap-1 rounded-full bg-violet-50 dark:bg-violet-900/30 px-2.5 py-1 text-xs text-slate-700 dark:text-slate-200"
-                          >
-                            {k}
-                            <button
-                              onClick={() =>
-                                onUpdate(img.id, { keywords: (img.keywords || []).filter((_, j) => j !== i) })
-                              }
-                              className="font-bold text-violet-600 dark:text-violet-300"
-                              aria-label={`Remove ${k}`}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                        {addingId === img.id ? (
-                          <input
-                            autoFocus
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            onBlur={() => commitTag(img)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") commitTag(img);
-                              if (e.key === "Escape") {
-                                setNewTag("");
-                                setAddingId(null);
-                              }
-                            }}
-                            className="w-28 rounded-full border border-violet-300 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 outline-none"
-                          />
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setAddingId(img.id);
-                              setNewTag("");
-                            }}
-                            className="rounded-full px-2 py-1 text-xs font-semibold text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/30"
-                          >
-                            + Add Tag
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => navigator.clipboard.writeText((img.keywords || []).join(", "))}
-                        className="mt-2 text-xs font-medium text-violet-600 dark:text-violet-400 hover:underline"
-                      >
-                        Copy keywords
-                      </button>
-                    </td>
-
-                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                      <textarea
-                        value={img.description || ""}
-                        rows={4}
-                        onChange={(e) => onUpdate(img.id, { description: e.target.value })}
-                        className={fieldClass}
-                      />
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-sm text-slate-400">
-                  No results found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Sidebar from "@/components/Sidebar";
+import UploadCard from "@/components/UploadCard";
+import ControlsPanel, { type GenerationSettings, type Provider } from "@/components/ControlsPanel";
+import ApiKeyModal from "@/components/ApiKeyModal";
+import PreviewGrid from "@/components/PreviewGrid";
+import ResultCard from "@/components/ResultCard";
+import type { ImageItem } from "@/types/image";
+const DEFAULT_SETTINGS: GenerationSettings = { provider:"gemini",geminiModel:"gemini-2.5-flash",mistralModel:"pixtral-large-latest",openaiModel:"gpt-4o",openrouterModel:"google/gemini-2.5-flash",mode:"metadata",platform:"general",titleLength:140,keywordsCount:43,extraInstructions:"",parallel:false };
+const EMPTY_KEYS: Record<Provider,string[]> = {gemini:[],groq:[],mistral:[],openai:[],openrouter:[]};
+const KEY_STORAGE="csvmeta-provider-keys-v1", HISTORY_STORAGE="csvmeta-history-v1";
+type HistoryItem={id:string;fileName:string;title?:string;prompt?:string;createdAt:string};
+function csvDownload(images:ImageItem[]) {
+ const rows=images.filter(x=>x.status==="done"&&x.prompt===undefined); if(!rows.length)return;
+ const q=(v:string)=>'"'+v.replace(/"/g,'""')+'"';
+ const data=[["Filename","Title","Description","Keywords"],...rows.map(x=>[x.file.name,x.title||"",x.description||"",(x.keywords||[]).join(", ")])];
+ const blob=new Blob(["\uFEFF"+data.map(r=>r.map(q).join(",")).join("\r\n")],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="metadata-export.csv";a.click();URL.revokeObjectURL(url);
+}
+export default function HomePage(){
+ const [images,setImages]=useState<ImageItem[]>([]),[selectedId,setSelectedId]=useState<string|null>(null);
+ const [settings,setSettings]=useState<GenerationSettings>(DEFAULT_SETTINGS),[savedKeys,setSavedKeys]=useState<Record<Provider,string[]>>(EMPTY_KEYS);
+ const [activeKeys,setActiveKeys]=useState<Partial<Record<Provider,number>>>({}),[keysOpen,setKeysOpen]=useState(false);
+ const [busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[history,setHistory]=useState<HistoryItem[]>([]);
+ const [activeTab,setActiveTab]=useState<"Generate"|"Metadata"|"History"|"Templates"|"Settings">("Generate"),[hydrated,setHydrated]=useState(false);
+ useEffect(()=>{try{const k=localStorage.getItem(KEY_STORAGE),h=localStorage.getItem(HISTORY_STORAGE);if(k)setSavedKeys({...EMPTY_KEYS,...JSON.parse(k)});if(h)setHistory(JSON.parse(h));}catch{setNotice("Could not load saved browser data.");}setHydrated(true);},[]);
+ useEffect(()=>{if(hydrated)localStorage.setItem(KEY_STORAGE,JSON.stringify(savedKeys));},[hydrated,savedKeys]);
+ useEffect(()=>{if(hydrated)localStorage.setItem(HISTORY_STORAGE,JSON.stringify(history.slice(0,100)));},[hydrated,history]);
+ const updateSettings=useCallback((p:Partial<GenerationSettings>)=>setSettings(s=>({...s,...p})),[]);
+ const updateImage=useCallback((id:string,p:Partial<ImageItem>)=>setImages(xs=>xs.map(x=>x.id===id?{...x,...p}:x)),[]);
+ const addFiles=useCallback((files:File[])=>{const valid=files.filter(f=>f.type.startsWith("image/"));const added=valid.slice(0,Math.max(0,100-images.length)).map(file=>({id:crypto.randomUUID(),file,previewUrl:URL.createObjectURL(file),status:"pending" as const}));setImages(xs=>[...xs,...added]);setNotice(added.length?added.length+" image(s) added.":"Choose image files (PNG, JPG, WEBP), up to 100.");},[images.length]);
+ const removeImage=useCallback((id:string)=>{setImages(xs=>{const x=xs.find(i=>i.id===id);if(x)URL.revokeObjectURL(x.previewUrl);return xs.filter(i=>i.id!==id);});setSelectedId(x=>x===id?null:x);},[]);
+ const getKey=useCallback((p:Provider)=>{const a=savedKeys[p]||[],i=activeKeys[p]??a.length-1;return i>=0?a[i]||"":"";},[savedKeys,activeKeys]);
+ const generateOne=useCallback(async(image:ImageItem)=>{const apiKey=getKey(settings.provider);if(!apiKey){updateImage(image.id,{status:"error",error:"Add an API key in API Keys settings."});return;}updateImage(image.id,{status:"loading",error:undefined});
+ const body=new FormData();body.append("file",image.file);body.append("provider",settings.provider);body.append("geminiModel",settings.geminiModel);body.append("mistralModel",settings.mistralModel);body.append("openaiModel",settings.openaiModel);body.append("openrouterModel",settings.openrouterModel);body.append("apiKey",apiKey);body.append("mode",settings.mode);body.append("platform",settings.platform);body.append("titleLength",String(settings.titleLength));body.append("keywordsCount",String(settings.keywordsCount));body.append("extraInstructions",settings.extraInstructions);
+ try{const res=await fetch("/api/generate",{method:"POST",body}),result=await res.json();if(!res.ok||!result.success)throw new Error(result.error||"Generation failed.");updateImage(image.id,settings.mode==="prompt"?{status:"done",prompt:String(result.prompt||"")}:{status:"done",title:String(result.title||""),description:String(result.description||""),keywords:Array.isArray(result.keywords)?result.keywords.map(String):[]});setHistory(h=>[{id:image.id,fileName:image.file.name,title:result.title,prompt:result.prompt,createdAt:new Date().toISOString()},...h].slice(0,100));}catch(e){updateImage(image.id,{status:"error",error:e instanceof Error?e.message:"Generation failed."});}},[getKey,settings,updateImage]);
+ const generateAll=async()=>{const pending=images.filter(x=>x.status==="pending"||x.status==="error");if(!pending.length){setNotice("Upload images first.");return;}if(!getKey(settings.provider)){setKeysOpen(true);setNotice("Add an API key to continue.");return;}setBusy(true);setNotice("Generating metadata…");try{if(settings.parallel)await Promise.all(pending.map(generateOne));else for(const item of pending)await generateOne(item);}finally{setBusy(false);setNotice("Generation finished. Check any errors below.");}};
+ const selected=useMemo(()=>images.find(x=>x.id===selectedId)||images.find(x=>x.status==="done")||null,[images,selectedId]);
+ const addKey=(p:Provider,key:string)=>{setSavedKeys(k=>({...k,[p]:[...(k[p]||[]),key]}));setActiveKeys(a=>({...a,[p]:(savedKeys[p]||[]).length}));};
+ const removeKey=(p:Provider,i:number)=>{setSavedKeys(k=>({...k,[p]:k[p].filter((_,n)=>n!==i)}));setActiveKeys(a=>({...a,[p]:undefined}));};
+ return <div className="min-h-screen bg-[#fbfaff] text-slate-950"><Sidebar active={activeTab} onNavigate={setActiveTab}/>
+ <main className="min-h-screen px-4 py-5 md:ml-[210px] md:px-5"><div className="mx-auto max-w-[1600px]">
+ <header className="mb-4 flex items-center justify-between"><h1 className="text-xl font-extrabold"><span className="mr-2 text-violet-700">✦</span>{activeTab==="Generate"?"Generate Metadata":activeTab}</h1><button onClick={()=>setKeysOpen(true)} className="rounded-full bg-violet-100 px-4 py-2 text-sm font-bold text-violet-700">API Keys</button></header>
+ {activeTab==="History"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="mb-4 text-lg font-bold">Generation History</h2>{history.length?history.map(h=><article key={h.id+h.createdAt} className="border-b py-3"><b>{h.fileName}</b><p>{h.title||h.prompt}</p><small>{new Date(h.createdAt).toLocaleString()}</small></article>):<p className="text-sm text-slate-500">No history yet.</p>}</section>:activeTab==="Templates"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Prompt Templates</h2>{["Commercial stock photography, clear subject and natural lighting","Minimal composition with clean background","Editorial photography with authentic atmosphere"].map(t=><button key={t} onClick={()=>{updateSettings({mode:"prompt",extraInstructions:t});setActiveTab("Generate");}} className="m-2 rounded-xl border p-3 text-left">{t}</button>)}</section>:activeTab==="Settings"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Settings</h2><p className="my-3 text-sm text-slate-500">API keys are stored in this browser.</p><button onClick={()=>setKeysOpen(true)} className="rounded-xl bg-violet-700 px-4 py-2 text-white">Manage API Keys</button></section>:<>
+ <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(390px,.95fr)]"><UploadCard onFilesSelected={addFiles}/><div><ControlsPanel settings={settings} onChange={updateSettings} onOpenKeys={()=>setKeysOpen(true)} disabled={busy}/><div className="mt-3 flex justify-end"><button onClick={generateAll} disabled={!images.length||busy} className="rounded-xl bg-violet-700 px-6 py-3 font-bold text-white disabled:opacity-40">{busy?"Generating…":"✦ Generate Metadata"}</button></div></div></div>
+ <div className="mt-5 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
+ {notice&&<p role="status" className="my-2 text-sm text-slate-500">{notice}</p>}<PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
+ </>}</div></main>
+ <ApiKeyModal open={keysOpen} settings={settings} onChange={updateSettings} savedKeys={savedKeys} addKey={addKey} removeKey={removeKey} setActiveKey={(p,i)=>setActiveKeys(a=>({...a,[p]:i}))} close={()=>setKeysOpen(false)}/></div>;
 }
