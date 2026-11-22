@@ -1,6 +1,6 @@
 "use client";
 
-import type { ImageItem } from "../app/page";
+import type { ImageItem } from "../types/image";
 
 type Props = {
   image: ImageItem | null;
