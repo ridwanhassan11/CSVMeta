@@ -350,20 +350,12 @@ export default function Home() {
       />
 
       <Sidebar />
-      <section className="relative z-10 ml-64 p-8 flex gap-6 items-start">
-        <div className="sticky top-8 self-start w-full max-w-[340px] shrink-0">
-          <ControlsPanel
-            settings={settings}
-            onChange={updateSettings}
-            onOpenKeys={() => setShowKeys(true)}
-            disabled={generating}
-          />
-        </div>
+      <section className="relative z-10 ml-64 p-8">
+        <div className="flex gap-6 items-start">
+          <div className="flex-1 min-w-0">
+            <UploadCard onFilesSelected={handleFilesSelected} />
 
-        <div className="flex-1 min-w-0">
-          <UploadCard onFilesSelected={handleFilesSelected} />
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm text-slate-400">
               {images.length > 0
                 ? `${images.length} file(s) ready${generating ? ` · Generating ${doneCount}/${images.length}` : ""}`
@@ -399,7 +391,7 @@ export default function Home() {
               <button
                 onClick={generateAll}
                 disabled={generating || pendingCount === 0}
-                className="flex items-center gap-1.5 rounded-xl bg-slate-900 dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-200 disabled:opacity-40"
+                className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-40"
               >
                 {generating ? (
                   "Generating..."
@@ -430,20 +422,30 @@ export default function Home() {
           {generating && (
             <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
               <div
-                className="h-full rounded-full bg-slate-900 dark:bg-white transition-all"
+                className="h-full rounded-full bg-violet-600 transition-all"
                 style={{ width: `${(doneCount / images.length) * 100}%` }}
               />
             </div>
           )}
+          </div>
 
-          <PreviewGrid
-            images={images}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onRemove={removeImage}
-            onUpdate={updateImage}
-          />
+          <div className="w-full max-w-[340px] shrink-0">
+            <ControlsPanel
+              settings={settings}
+              onChange={updateSettings}
+              onOpenKeys={() => setShowKeys(true)}
+              disabled={generating}
+            />
+          </div>
         </div>
+
+        <PreviewGrid
+          images={images}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onRemove={removeImage}
+          onUpdate={updateImage}
+        />
 
         <ApiKeyModal
           open={showKeys}
