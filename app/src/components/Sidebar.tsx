@@ -64,6 +64,34 @@ export default function Sidebar({ active = "Generate" }: { active?: NavItem }) {
       </nav>
 
       <div className="mt-auto space-y-3">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-violet-600 dark:text-violet-400">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <path d="M2 18 4 6l5 6 3-8 3 8 5-6 2 12z" />
+            </svg>
+            Free Plan
+          </div>
+          <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">6,842 / 10,000 rows</p>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-violet-100 dark:bg-slate-800">
+              <div className="h-full rounded-full bg-violet-600" style={{ width: "66%" }} />
+            </div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">66%</span>
+          </div>
+          <button className="mt-3 w-full rounded-xl bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition">
+            Upgrade
+          </button>
+        </div>
+
         <div className="flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3">
           <span className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
             {theme === "dark" ? (
