@@ -1,4 +1,6 @@
 "use client";
+
+// Main Metadata workspace page; shared ImageItem type lives in @/types/image.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import UploadCard from "@/components/UploadCard";
