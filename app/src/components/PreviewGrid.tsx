@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { ImageItem } from "../app/page";
+import type { ImageItem } from "../types/image";
 
 const statusStyle: Record<ImageItem["status"], string> = {
   pending: "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400",
