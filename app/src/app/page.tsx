@@ -137,9 +137,6 @@ export default function HomePage(){
   <input ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={e=>{const files=Array.from(e.currentTarget.files||[]);if(files.length)addFiles(files);e.currentTarget.value="";}} />
 
  </section>
- <div style={{gridColumn:"1 / 3",gridRow:"2"}} className={images.length>0?"min-w-0":"hidden"}>
-  <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto" /><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
- </div>
 
  <div style={{gridColumn:"1 / 3",gridRow:"3"}} className={`w-full min-w-0 overflow-hidden ${images.length===0?"hidden":""}`}>
 
@@ -149,6 +146,11 @@ export default function HomePage(){
   <div className="mb-3 flex items-center justify-between"><h2 className="font-bold text-slate-900 dark:text-white">⚙ Generation Settings</h2><button onClick={()=>setSettings(DEFAULT_SETTINGS)} disabled={busy} className="text-xs font-semibold text-violet-700">↻ Reset</button></div>
   <ControlsPanel settings={settings} onChange={updateSettings} onOpenKeys={()=>setKeysOpen(true)} disabled={busy}/>
   <button onClick={generateAll} disabled={!images.length||busy} className="mt-4 w-full rounded-xl bg-violet-700 px-6 py-3 font-bold text-white shadow-md shadow-violet-700/20 disabled:opacity-40">{busy?"Generating…":"✦ Generate Metadata"}</button>
+   {busy&&<button onClick={()=>{stopRequested.current=true;setNotice("বর্তমান ছবির কাজ শেষ হলে generation থামবে…");}} className="mt-3 w-full rounded-xl border border-rose-300 bg-white px-6 py-3 font-semibold text-rose-600 hover:bg-rose-50">■ Stop Generating</button>}
+   <div className="mt-3 flex flex-wrap gap-2">
+    <button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);setNotice("");}} disabled={!images.length||busy} className="flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium disabled:opacity-40">Clear All</button>
+    <button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="flex-1 rounded-xl bg-violet-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">↓ Export CSV</button>
+   </div>
  </section>
 </div>
  </>}</div></div></main>
