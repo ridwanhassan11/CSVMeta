@@ -3,6 +3,7 @@
 export type Provider = "gemini" | "groq" | "mistral" | "openai" | "openrouter";
 
 export type GeminiModel =
+  | "gemini-3.8-flash"
   | "gemini-3.1-pro"
   | "gemini-3.5-flash"
   | "gemini-2.5-pro"
