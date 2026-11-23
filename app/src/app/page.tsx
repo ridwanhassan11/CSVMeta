@@ -140,13 +140,13 @@ export default function HomePage(){
    <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex h-14 w-[58px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed border-violet-300 text-2xl text-violet-700 hover:bg-violet-50" aria-label="Add images">+</button>
   </div>}
  </section>
- <section className="xl:min-h-[760px] rounded-2xl border border-[#e8e1f6] bg-white p-3.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
+ <section className="xl:sticky xl:top-[58px] xl:self-start xl:min-h-[calc(100vh-74px)] rounded-2xl border border-[#e8e1f6] bg-white p-3.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
   <div className="mb-3 flex items-center justify-between"><h2 className="font-bold text-slate-900 dark:text-white">⚙ Generation Settings</h2><button onClick={()=>setSettings(DEFAULT_SETTINGS)} disabled={busy} className="text-xs font-semibold text-violet-700">↻ Reset</button></div>
   <ControlsPanel settings={settings} onChange={updateSettings} onOpenKeys={()=>setKeysOpen(true)} disabled={busy}/>
   <button onClick={generateAll} disabled={!images.length||busy} className="mt-4 w-full rounded-xl bg-violet-700 px-6 py-3 font-bold text-white shadow-md shadow-violet-700/20 disabled:opacity-40">{busy?"Generating…":"✦ Generate Metadata"}</button>
  </section>
 </div>
- <div className="mt-3 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
+ <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
  {notice&&<p role="status" className="my-2 text-sm text-slate-500">{notice}</p>}<PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
  </>}</div></div></main>
  <ApiKeyModal open={keysOpen} settings={settings} onChange={updateSettings} savedKeys={savedKeys} addKey={addKey} removeKey={removeKey} setActiveKey={(p,i)=>setActiveKeys(a=>({...a,[p]:i}))} close={()=>setKeysOpen(false)}/></div>;
