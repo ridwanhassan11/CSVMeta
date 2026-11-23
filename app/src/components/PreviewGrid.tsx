@@ -26,23 +26,13 @@ export default function PreviewGrid({
   onRemove: (id: string) => void;
   onUpdate: (id: string, patch: Partial<ImageItem>) => void;
 }) {
-  const [query, setQuery] = useState("");
   const [addingId, setAddingId] = useState<string | null>(null);
   const [newTag, setNewTag] = useState("");
 
   if (images.length === 0) return null;
 
   const doneCount = images.filter((i) => i.status === "done").length;
-  const q = query.trim().toLowerCase();
-  const rows = images
-    .map((img, index) => ({ img, index }))
-    .filter(({ img }) => {
-      if (!q) return true;
-      const text = [img.file.name, img.title, img.description, img.prompt, (img.keywords || []).join(" ")]
-        .join(" ")
-        .toLowerCase();
-      return text.includes(q);
-    });
+  const rows = images.map((img, index) => ({ img, index }));
 
   function commitTag(img: ImageItem) {
     const tag = newTag.trim();
@@ -58,12 +48,6 @@ export default function PreviewGrid({
         <span className="rounded-full bg-violet-100 dark:bg-violet-900/40 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300">
           Live Preview ({doneCount} / {images.length})
         </span>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search metadata..."
-          className="ml-auto w-full max-w-xs rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-800 dark:text-slate-200 outline-none focus:border-violet-400"
-        />
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
