@@ -56,10 +56,60 @@ export default function HomePage(){
  const addFiles=useCallback((files:File[])=>{const valid=files.filter(f=>f.type.startsWith("image/"));const added=valid.slice(0,Math.max(0,100-images.length)).map(file=>({id:crypto.randomUUID(),file,previewUrl:URL.createObjectURL(file),status:"pending" as const}));setImages(xs=>[...xs,...added]);setNotice(added.length?added.length+" image(s) added.":"Choose image files (PNG, JPG, WEBP), up to 100.");},[images.length]);
  const removeImage=useCallback((id:string)=>{setImages(xs=>{const x=xs.find(i=>i.id===id);if(x)URL.revokeObjectURL(x.previewUrl);return xs.filter(i=>i.id!==id);});setSelectedId(x=>x===id?null:x);},[]);
  const getKey=useCallback((p:Provider)=>{const a=savedKeys[p]||[],i=activeKeys[p]??a.length-1;return i>=0?a[i]||"":"";},[savedKeys,activeKeys]);
- const generateOne=useCallback(async(image:ImageItem)=>{const apiKey=getKey(settings.provider);if(!apiKey){updateImage(image.id,{status:"error",error:"Add an API key in API Keys settings."});return false;}lastGenerationError.current="";updateImage(image.id,{status:"loading",error:undefined});
+ const generateOne=useCallback(async(image:ImageItem,apiKeyOverride?:string)=>{const apiKey=apiKeyOverride||getKey(settings.provider);if(!apiKey){updateImage(image.id,{status:"error",error:"Add an API key in API Keys settings."});return false;}lastGenerationError.current="";updateImage(image.id,{status:"loading",error:undefined});
  try{const body=new FormData();const uploadFile=await prepareImageForUpload(image.file);body.append("file",uploadFile,uploadFile.name);body.append("provider",settings.provider);body.append("geminiModel",settings.geminiModel);body.append("mistralModel",settings.mistralModel);body.append("openaiModel",settings.openaiModel);body.append("openrouterModel",settings.openrouterModel);body.append("apiKey",apiKey);body.append("mode",settings.mode);body.append("platform",settings.platform);body.append("titleLength",String(settings.titleLength));body.append("keywordsCount",String(settings.keywordsCount));body.append("extraInstructions",settings.extraInstructions);
  const res=await fetch("/api/generate",{method:"POST",body});const responseText=await res.text();let result:any;try{result=JSON.parse(responseText);}catch{throw new Error(responseText.slice(0,240)||"Server returned an unreadable response. Try a smaller image.");}if(!res.ok||!result.success)throw new Error(result.error||"Generation failed.");updateImage(image.id,settings.mode==="prompt"?{status:"done",prompt:String(result.prompt||"")}:{status:"done",title:String(result.title||""),description:String(result.description||""),keywords:Array.isArray(result.keywords)?result.keywords.map(String):[]});setHistory(h=>[{id:image.id,fileName:image.file.name,title:result.title,prompt:result.prompt,createdAt:new Date().toISOString()},...h].slice(0,100));return true;}catch(e){lastGenerationError.current=e instanceof Error?e.message:"Generation failed.";updateImage(image.id,{status:"error",error:lastGenerationError.current});return false;}},[getKey,settings,updateImage]);
- const generateAll=async()=>{if(generationLock.current)return;const pending=images.filter(x=>x.status==="pending"||x.status==="error");if(!pending.length){setNotice("নতুন ছবি যোগ করুন অথবা failed ছবিগুলো আবার চেষ্টা করুন।");return;}if(!getKey(settings.provider)){setKeysOpen(true);setNotice("Add an API key to continue.");return;}generationLock.current=true;setBusy(true);let completed=images.filter(x=>x.status==="done").length;let failed=0;let stopped=false;setNotice(`একটি ছবি সফলভাবে তৈরি না হওয়া পর্যন্ত পরের ছবিতে যাওয়া হবে না। ${completed}/${images.length}`);try{for(let index=0;index<pending.length;index++){const item=pending[index];let succeeded=false;for(let attempt=1;attempt<=5&&!succeeded;attempt++){setNotice(`ছবি ${index+1}/${pending.length}: ${item.file.name} — চেষ্টা ${attempt}/5। এটি সম্পূর্ণ না হওয়া পর্যন্ত পরের ছবি অপেক্ষায় থাকবে।`);succeeded=await generateOne(item);const quotaHit=/quota|429|resource_exhausted|rate.?limit|free tier/i.test(lastGenerationError.current);if(!succeeded&&quotaHit){failed++;stopped=true;setNotice(`API quota শেষ হয়েছে। ${item.file.name} তৈরি করা যায়নি। একই API key দিয়ে আর চেষ্টা না করে quota reset হওয়া পর্যন্ত অপেক্ষা করুন অথবা অন্য provider/API key ব্যবহার করুন। বাকি ছবিগুলো queue-তে রাখা হয়েছে।`);break;}if(!succeeded&&attempt<5){const waitMs=Math.min(15000*attempt,60000);setNotice(`এই ছবিটি এখনো তৈরি হয়নি। ${Math.round(waitMs/1000)} সেকেন্ড অপেক্ষা করে একই ছবির চেষ্টা আবার হবে; পরের ছবিতে যাওয়া হবে না।`);await new Promise(resolve=>setTimeout(resolve,waitMs));}}if(!succeeded){failed++;stopped=true;setNotice(`${item.file.name} পাঁচবার চেষ্টা করেও তৈরি হয়নি। পরের ছবিগুলো শুরু করা হয়নি; সমস্যা ঠিক করে আবার Generate চাপুন।`);break;}completed++;if(index<pending.length-1){setNotice(`${item.file.name} সফলভাবে তৈরি হয়েছে। পরের ছবির আগে ৫ সেকেন্ড অপেক্ষা করা হচ্ছে…`);await new Promise(resolve=>setTimeout(resolve,5000));}}}finally{generationLock.current=false;setBusy(false);if(!stopped)setNotice(`সব ছবি ধারাবাহিকভাবে তৈরি সম্পন্ন। সফল: ${completed}, ব্যর্থ: ${failed}।`);}};
+ const generateAll=async()=>{
+  if(generationLock.current)return;
+  const pending=images.filter(x=>x.status==="pending"||x.status==="error");
+  if(!pending.length){setNotice("নতুন ছবি যোগ করুন অথবা failed ছবিগুলো আবার চেষ্টা করুন।");return;}
+  const keys=savedKeys[settings.provider]||[];
+  if(!keys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
+  generationLock.current=true;setBusy(true);
+  let completed=images.filter(x=>x.status==="done").length;let failed=0;let stopped=false;
+  const preferred=activeKeys[settings.provider]??(keys.length-1);
+  const orderedKeys=keys.map((key,index)=>({key,index})).filter(x=>x.key);
+  const rotated=[...orderedKeys.slice(Math.max(0,preferred)),...orderedKeys.slice(0,Math.max(0,preferred))];
+  setNotice(`একটি ছবি সম্পূর্ণ করে তারপর পরেরটি শুরু হবে। মোট API key: ${rotated.length}টি।`);
+  try{
+   for(let index=0;index<pending.length;index++){
+    const item=pending[index];let succeeded=false;let keyWorked=false;let lastFailure="";
+    for(let keyIndex=0;keyIndex<rotated.length&&!succeeded;keyIndex++){
+     const entry=rotated[keyIndex];
+     setNotice(`ছবি ${index+1}/${pending.length}: ${item.file.name} — API key ${keyIndex+1}/${rotated.length} দিয়ে চেষ্টা হচ্ছে।`);
+     for(let attempt=1;attempt<=3&&!succeeded;attempt++){
+      succeeded=await generateOne(item,entry.key);
+      if(succeeded){keyWorked=true;setActiveKeys(a=>({...a,[settings.provider]:entry.index}));break;}
+      lastFailure=lastGenerationError.current||"Generation failed.";
+      const shouldRotate=/quota|429|resource.?exhausted|rate.?limit|free tier|invalid api key|api key not valid|unauthorized|401|403|permission denied/i.test(lastFailure);
+      if(shouldRotate)break;
+      if(attempt<3){
+       const waitMs= Math.min(10000*attempt,30000);
+       setNotice(`ছবি ${index+1} ব্যর্থ হয়েছে। একই API key দিয়ে ${waitMs/1000} সেকেন্ড পরে আবার চেষ্টা করছি; পরের ছবিতে যাওয়া হচ্ছে না।`);
+       await new Promise(resolve=>setTimeout(resolve,waitMs));
+      }
+     }
+     if(!succeeded&&keyIndex<rotated.length-1){
+      setNotice(`এই API key-তে quota/permission সমস্যা। পরের সংরক্ষিত API key-তে যাচ্ছি…`);
+      await new Promise(resolve=>setTimeout(resolve,1500));
+     }
+    }
+    if(!succeeded){
+     failed++;stopped=true;
+     const quotaLike=/quota|429|resource.?exhausted|rate.?limit|free tier/i.test(lastFailure);
+     setNotice(quotaLike
+      ?`এই Provider-এর ${rotated.length}টি API key-ই quota/rate limit-এ পড়েছে। ${item.file.name} তৈরি হয়নি; পরের ছবিগুলো queue-তে রাখা হয়েছে। quota reset বা অন্য Provider key যোগ করে আবার Generate করুন।`
+      :`${item.file.name} তিনবার চেষ্টা ও সব API key পরীক্ষা করেও তৈরি হয়নি। পরের ছবিগুলো queue-তে রাখা হয়েছে। সমস্যা: ${lastFailure}`);
+     break;
+    }
+    completed++;
+    if(index<pending.length-1){setNotice(`${item.file.name} সফলভাবে তৈরি হয়েছে। পরের ছবির আগে ৩ সেকেন্ড অপেক্ষা করছি…`);await new Promise(resolve=>setTimeout(resolve,3000));}
+   }
+  }finally{
+   generationLock.current=false;setBusy(false);
+   if(!stopped)setNotice(`সব ছবি ধারাবাহিকভাবে তৈরি সম্পন্ন। সফল: ${completed}, ব্যর্থ: ${failed}।`);
+  }
+ };
  const selected=useMemo(()=>images.find(x=>x.id===selectedId)||images.find(x=>x.status==="done")||null,[images,selectedId]);
  const addKey=(p:Provider,key:string)=>{setSavedKeys(k=>({...k,[p]:[...(k[p]||[]),key]}));setActiveKeys(a=>({...a,[p]:(savedKeys[p]||[]).length}));};
  const removeKey=(p:Provider,i:number)=>{setSavedKeys(k=>({...k,[p]:k[p].filter((_,n)=>n!==i)}));setActiveKeys(a=>({...a,[p]:undefined}));};
