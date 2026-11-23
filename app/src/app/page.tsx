@@ -1,7 +1,7 @@
 "use client";
 
 // Main Metadata workspace page; shared ImageItem type lives in @/types/image.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import UploadCard from "@/components/UploadCard";
 import ControlsPanel, { type GenerationSettings, type Provider } from "@/components/ControlsPanel";
@@ -40,6 +40,7 @@ async function prepareImageForUpload(file: File): Promise<File> {
  }
 }
 export default function HomePage(){
+ const fileInputRef=useRef<HTMLInputElement>(null);
  const [images,setImages]=useState<ImageItem[]>([]),[selectedId,setSelectedId]=useState<string|null>(null);
  const [settings,setSettings]=useState<GenerationSettings>(DEFAULT_SETTINGS),[savedKeys,setSavedKeys]=useState<Record<Provider,string[]>>(EMPTY_KEYS);
  const [activeKeys,setActiveKeys]=useState<Partial<Record<Provider,number>>>({}),[keysOpen,setKeysOpen]=useState(false);
@@ -71,9 +72,10 @@ export default function HomePage(){
    <span className="absolute left-3 top-3 rounded-full bg-violet-700 px-3 py-1 text-xs font-semibold text-white">◉ Preview</span>
    {selected&&<span className="absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-1 text-xs text-white">{selected.file.name}</span>}
   </div>
+  <input ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={e=>{const files=Array.from(e.currentTarget.files||[]);if(files.length)addFiles(files);e.currentTarget.value="";}} />
   <div className="mt-2 flex min-h-[58px] items-center gap-2 overflow-x-auto pb-1">
    {images.map((img)=><button key={img.id} onClick={()=>setSelectedId(img.id)} className={`relative h-14 w-[74px] shrink-0 overflow-hidden rounded-lg border-2 ${selectedId===img.id?"border-violet-600":"border-transparent"}`}><img src={img.previewUrl} alt={img.file.name} className="h-full w-full object-cover"/><span className="absolute bottom-0 right-0 rounded-tl bg-black/65 px-1 text-[9px] text-white">{img.status==="done"?"✓":img.status==="error"?"!":""}</span></button>)}
-   <label className="flex h-14 w-[58px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed border-violet-300 text-2xl text-violet-700 hover:bg-violet-50">+<input type="file" accept="image/png,image/jpeg,image/webp" multiple className="hidden" onChange={e=>{if(e.target.files)addFiles(Array.from(e.target.files));e.currentTarget.value="";}}/></label>
+   <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex h-14 w-[58px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed border-violet-300 text-2xl text-violet-700 hover:bg-violet-50" aria-label="Add images">+</button>
   </div>
  </section>
  <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
