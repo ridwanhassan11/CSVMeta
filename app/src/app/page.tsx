@@ -119,7 +119,7 @@ export default function HomePage(){
  <div className="px-3 py-3 md:px-3">
  {activeTab==="History"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="mb-4 text-lg font-bold">Generation History</h2>{history.length?history.map(h=><article key={h.id+h.createdAt} className="border-b py-3"><b>{h.fileName}</b><p>{h.title||h.prompt}</p><small>{new Date(h.createdAt).toLocaleString()}</small></article>):<p className="text-sm text-slate-500">No history yet.</p>}</section>:activeTab==="Templates"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Prompt Templates</h2>{["Commercial stock photography, clear subject and natural lighting","Minimal composition with clean background","Editorial photography with authentic atmosphere"].map(t=><button key={t} onClick={()=>{updateSettings({mode:"prompt",extraInstructions:t});setActiveTab("Generate");}} className="m-2 rounded-xl border p-3 text-left">{t}</button>)}</section>:activeTab==="Settings"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Settings</h2><p className="my-3 text-sm text-slate-500">API keys are stored in this browser.</p><button onClick={()=>setKeysOpen(true)} className="rounded-xl bg-violet-700 px-4 py-2 text-white">Manage API Keys</button></section>:<>
  <div className="grid items-start gap-3 min-[900px]:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)_minmax(0,0.95fr)]">
- <section className="min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-2.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
+ <section className={`min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-2.5 ${images.length===0?"min-[900px]:col-span-2":""} shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
   <button type="button"
    onClick={()=>fileInputRef.current?.click()}
    onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add("border-violet-600","bg-violet-50/80");}}
@@ -142,7 +142,7 @@ export default function HomePage(){
   <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
  </section>
 
- <div className="w-full min-w-0 overflow-hidden min-[900px]:col-start-2 min-[900px]:row-start-1">
+ <div className={`w-full min-w-0 overflow-hidden min-[900px]:col-start-2 min-[900px]:row-start-1 ${images.length===0?"hidden":""}`}>
 
  {notice&&<p role="status" className="my-2 text-sm text-slate-500">{notice}</p>}<PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
  </div>
