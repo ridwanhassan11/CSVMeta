@@ -19,12 +19,14 @@ export default function PreviewGrid({
   onSelect,
   onRemove,
   onUpdate,
+  notice,
 }: {
   images: ImageItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, patch: Partial<ImageItem>) => void;
+  notice?: string;
 }) {
   const [addingId, setAddingId] = useState<string | null>(null);
   const [newTag, setNewTag] = useState("");
@@ -43,11 +45,14 @@ export default function PreviewGrid({
 
   return (
     <div className="mt-8">
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <p className="text-base font-bold text-slate-900 dark:text-white">Generated Metadata</p>
-        <span className="rounded-full bg-violet-100 dark:bg-violet-900/40 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300">
-          Live Preview ({doneCount} / {images.length})
-        </span>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-base font-bold text-slate-900 dark:text-white">Generated Metadata</p>
+          <span className="rounded-full bg-violet-100 dark:bg-violet-900/40 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300">
+            Live Preview ({doneCount} / {images.length})
+          </span>
+        </div>
+        {notice && <p role="status" className="text-sm text-slate-500 dark:text-slate-400">{notice}</p>}
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
