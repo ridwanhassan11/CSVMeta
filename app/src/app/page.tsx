@@ -53,7 +53,7 @@ export default function HomePage(){
  useEffect(()=>{if(hydrated)localStorage.setItem(HISTORY_STORAGE,JSON.stringify(history.slice(0,100)));},[hydrated,history]);
  const updateSettings=useCallback((p:Partial<GenerationSettings>)=>setSettings(s=>({...s,...p})),[]);
  const updateImage=useCallback((id:string,p:Partial<ImageItem>)=>setImages(xs=>xs.map(x=>x.id===id?{...x,...p}:x)),[]);
- const addFiles=useCallback((files:File[])=>{const valid=files.filter(f=>f.type.startsWith("image/"));const added=valid.slice(0,Math.max(0,100-images.length)).map(file=>({id:crypto.randomUUID(),file,previewUrl:URL.createObjectURL(file),status:"pending" as const}));setImages(xs=>[...xs,...added]);setNotice(added.length?added.length+" image(s) added.":"Choose image files (PNG, JPG, WEBP), up to 100.");},[images.length]);
+ const addFiles=useCallback((files:File[])=>{const valid=files.filter(f=>f.type.startsWith("image/"));const added=valid.slice(0,Math.max(0,100-images.length)).map(file=>({id:crypto.randomUUID(),file,previewUrl:URL.createObjectURL(file),status:"pending" as const}));setImages(xs=>[...xs,...added]);setNotice(added.length?"":"Choose image files (PNG, JPG, WEBP), up to 100.");},[images.length]);
  const removeImage=useCallback((id:string)=>{setImages(xs=>{const x=xs.find(i=>i.id===id);if(x)URL.revokeObjectURL(x.previewUrl);return xs.filter(i=>i.id!==id);});setSelectedId(x=>x===id?null:x);},[]);
  const getKey=useCallback((p:Provider)=>{const a=savedKeys[p]||[],i=activeKeys[p]??a.length-1;return i>=0?a[i]||"":"";},[savedKeys,activeKeys]);
  const generateOne=useCallback(async(image:ImageItem,apiKeyOverride?:string)=>{const apiKey=apiKeyOverride||getKey(settings.provider);if(!apiKey){updateImage(image.id,{status:"error",error:"Add an API key in API Keys settings."});return false;}lastGenerationError.current="";updateImage(image.id,{status:"loading",error:undefined});
@@ -138,7 +138,7 @@ export default function HomePage(){
 
  </section>
  <div style={{gridColumn:"1 / 3",gridRow:"2"}} className={images.length>0?"min-w-0":"hidden"}>
-  <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
+  <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto" /><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
  </div>
 
  <div style={{gridColumn:"1 / 3",gridRow:"3"}} className={`w-full min-w-0 overflow-hidden ${images.length===0?"hidden":""}`}>
