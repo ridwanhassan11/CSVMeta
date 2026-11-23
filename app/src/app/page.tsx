@@ -67,49 +67,51 @@ export default function HomePage(){
   const keys=savedKeys[settings.provider]||[];
   if(!keys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
   generationLock.current=true;stopRequested.current=false;setBusy(true);
-  let completed=images.filter(x=>x.status==="done").length;let failed=0;let stopped=false;
+  let completed=images.filter(x=>x.status==="done").length;
+  let failed=0;let stopped=false;
   const preferred=activeKeys[settings.provider]??(keys.length-1);
   const orderedKeys=keys.map((key,index)=>({key,index})).filter(x=>x.key);
   const rotated=[...orderedKeys.slice(Math.max(0,preferred)),...orderedKeys.slice(0,Math.max(0,preferred))];
-  setNotice(`একটি ছবি সম্পূর্ণ করে তারপর পরেরটি শুরু হবে। মোট API key: ${rotated.length}টি।`);
+  let remaining=[...pending];
   try{
-   for(let index=0;index<pending.length;index++){
-    const item=pending[index];let succeeded=false;let keyWorked=false;let lastFailure="";
-    for(let keyIndex=0;keyIndex<rotated.length&&!succeeded;keyIndex++){
-     const entry=rotated[keyIndex];
-     setNotice(`ছবি ${index+1}/${pending.length}: ${item.file.name} — API key ${keyIndex+1}/${rotated.length} দিয়ে চেষ্টা হচ্ছে।`);
-     for(let attempt=1;attempt<=3&&!succeeded;attempt++){
+   // Two full passes: finish the whole queue once, then retry only the leftovers.
+   for(let pass=1;pass<=2&&remaining.length;pass++){
+    const retryQueue=[];
+    setNotice(pass===1
+      ?`প্রথম ধাপ: ${remaining.length}টি ছবি ধারাবাহিকভাবে তৈরি করা হচ্ছে। প্রতিটি সংরক্ষিত API key চেষ্টা হবে।`
+      : `দ্বিতীয় ধাপ: প্রথম ধাপে বাকি থাকা ${remaining.length}টি ছবি আবার চেষ্টা করা হচ্ছে।`);
+    for(let index=0;index<remaining.length;index++){
+     const item=remaining[index];let succeeded=false;let lastFailure="";
+     for(let keyIndex=0;keyIndex<rotated.length&&!succeeded;keyIndex++){
+      const entry=rotated[keyIndex];
+      setNotice(`ধাপ ${pass}/2 · ছবি ${index+1}/${remaining.length}: ${item.file.name} · API key ${keyIndex+1}/${rotated.length}`);
       succeeded=await generateOne(item,entry.key);
-      if(succeeded){keyWorked=true;setActiveKeys(a=>({...a,[settings.provider]:entry.index}));break;}
+      if(succeeded){setActiveKeys(a=>({...a,[settings.provider]:entry.index}));break;}
       lastFailure=lastGenerationError.current||"Generation failed.";
-      const shouldRotate=/quota|429|resource.?exhausted|rate.?limit|free tier|invalid api key|api key not valid|unauthorized|401|403|permission denied/i.test(lastFailure);
-      if(shouldRotate)break;
-      if(attempt<3){
-       const waitMs= Math.min(10000*attempt,30000);
-       setNotice(`ছবি ${index+1} ব্যর্থ হয়েছে। একই API key দিয়ে ${waitMs/1000} সেকেন্ড পরে আবার চেষ্টা করছি; পরের ছবিতে যাওয়া হচ্ছে না।`);
-       await new Promise(resolve=>setTimeout(resolve,waitMs));
+      if(keyIndex<rotated.length-1){
+       setNotice(`এই Key-তে তৈরি হয়নি; একই ছবির জন্য পরের API Key চেষ্টা করছি…`);
+       await new Promise(resolve=>setTimeout(resolve,1200));
       }
      }
-     if(!succeeded&&keyIndex<rotated.length-1){
-      setNotice(`এই API key-তে quota/permission সমস্যা। পরের সংরক্ষিত API key-তে যাচ্ছি…`);
-      await new Promise(resolve=>setTimeout(resolve,1500));
+     if(succeeded)completed++;
+     else{
+      retryQueue.push(item);
+      updateImage(item.id,{status:"error",error:lastFailure||"All saved API keys failed."});
      }
+     if(stopRequested.current){stopped=true;retryQueue.push(...remaining.slice(index+1));setNotice("আপনার অনুরোধে generation বন্ধ করা হয়েছে। বাকি ছবিগুলো queue-তে রাখা হয়েছে।");break;}
+     if(index<remaining.length-1)await new Promise(resolve=>setTimeout(resolve,1200));
     }
-    if(!succeeded){
-     failed++;stopped=true;
-     const quotaLike=/quota|429|resource.?exhausted|rate.?limit|free tier/i.test(lastFailure);
-     setNotice(quotaLike
-      ?`এই Provider-এর ${rotated.length}টি API key-ই quota/rate limit-এ পড়েছে। ${item.file.name} তৈরি হয়নি; পরের ছবিগুলো queue-তে রাখা হয়েছে। quota reset বা অন্য Provider key যোগ করে আবার Generate করুন।`
-      :`${item.file.name} তিনবার চেষ্টা ও সব API key পরীক্ষা করেও তৈরি হয়নি। পরের ছবিগুলো queue-তে রাখা হয়েছে। সমস্যা: ${lastFailure}`);
-     break;
-    }
-    completed++;
-    if(stopRequested.current){stopped=true;setNotice(`${item.file.name} সম্পন্ন হয়েছে। আপনার অনুরোধে পরবর্তী ছবিগুলোর generation বন্ধ করা হয়েছে; সেগুলো queue-তে রাখা হয়েছে।`);break;}
-    if(index<pending.length-1){setNotice(`${item.file.name} সফলভাবে তৈরি হয়েছে। পরের ছবির আগে ৩ সেকেন্ড অপেক্ষা করছি…`);await new Promise(resolve=>setTimeout(resolve,3000));}
+    remaining=retryQueue;
+    if(stopped)break;
    }
+   failed=remaining.length;
   }finally{
    generationLock.current=false;stopRequested.current=false;setBusy(false);
-   if(!stopped)setNotice(`সব ছবি ধারাবাহিকভাবে তৈরি সম্পন্ন। সফল: ${completed}, ব্যর্থ: ${failed}।`);
+   if(!stopped){
+    setNotice(failed
+      ?`দুই ধাপের generation শেষ। সফল: ${completed}টি। এখনো বাকি: ${failed}টি — এগুলো Error অবস্থায় রাখা হয়েছে, চাইলে আবার Generate করতে পারবেন।`
+      :`সব ছবি সফলভাবে তৈরি সম্পন্ন। মোট সফল: ${completed}টি।`);
+   }
   }
  };
  const selected=useMemo(()=>images.find(x=>x.id===selectedId)||images.find(x=>x.status==="done")||null,[images,selectedId]);
