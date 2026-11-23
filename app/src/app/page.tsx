@@ -88,7 +88,6 @@ export default function HomePage(){
     if(stopRequested.current){stopped=true;setNotice("আপনার অনুরোধে generation বন্ধ করা হয়েছে। বাকি ছবিগুলো queue-তে রাখা হয়েছে।");break;}
     if(index<pending.length-1)await new Promise(resolve=>setTimeout(resolve,1200));
    }
-   failed=pending.filter(x=>x.status==="error").length;
   }finally{
    generationLock.current=false;stopRequested.current=false;setBusy(false);
    if(!stopped&&!quotaStopped){
