@@ -42,6 +42,7 @@ async function prepareImageForUpload(file: File): Promise<File> {
 export default function HomePage(){
  const fileInputRef=useRef<HTMLInputElement>(null);
  const generationLock=useRef(false);
+ const stopRequested=useRef(false);
  const lastGenerationError=useRef("");
  const [images,setImages]=useState<ImageItem[]>([]),[selectedId,setSelectedId]=useState<string|null>(null);
  const [settings,setSettings]=useState<GenerationSettings>(DEFAULT_SETTINGS),[savedKeys,setSavedKeys]=useState<Record<Provider,string[]>>(EMPTY_KEYS);
@@ -65,7 +66,7 @@ export default function HomePage(){
   if(!pending.length){setNotice("নতুন ছবি যোগ করুন অথবা failed ছবিগুলো আবার চেষ্টা করুন।");return;}
   const keys=savedKeys[settings.provider]||[];
   if(!keys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
-  generationLock.current=true;setBusy(true);
+  generationLock.current=true;stopRequested.current=false;setBusy(true);
   let completed=images.filter(x=>x.status==="done").length;let failed=0;let stopped=false;
   const preferred=activeKeys[settings.provider]??(keys.length-1);
   const orderedKeys=keys.map((key,index)=>({key,index})).filter(x=>x.key);
@@ -103,10 +104,11 @@ export default function HomePage(){
      break;
     }
     completed++;
+    if(stopRequested.current){stopped=true;setNotice(`${item.file.name} সম্পন্ন হয়েছে। আপনার অনুরোধে পরবর্তী ছবিগুলোর generation বন্ধ করা হয়েছে; সেগুলো queue-তে রাখা হয়েছে।`);break;}
     if(index<pending.length-1){setNotice(`${item.file.name} সফলভাবে তৈরি হয়েছে। পরের ছবির আগে ৩ সেকেন্ড অপেক্ষা করছি…`);await new Promise(resolve=>setTimeout(resolve,3000));}
    }
   }finally{
-   generationLock.current=false;setBusy(false);
+   generationLock.current=false;stopRequested.current=false;setBusy(false);
    if(!stopped)setNotice(`সব ছবি ধারাবাহিকভাবে তৈরি সম্পন্ন। সফল: ${completed}, ব্যর্থ: ${failed}।`);
   }
  };
