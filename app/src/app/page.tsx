@@ -125,7 +125,7 @@ export default function HomePage(){
    onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add("border-violet-600","bg-violet-50/80");}}
    onDragLeave={e=>{e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");}}
    onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");const dropped=Array.from(e.dataTransfer.files).filter(file=>file.type.startsWith("image/"));if(dropped.length)addFiles(dropped);}}
-   className="group relative flex h-[390px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
+   className="group relative flex h-[560px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
    aria-label="Upload images">
    <span className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-3xl text-violet-700 transition group-hover:scale-105 dark:bg-violet-950 dark:text-violet-300">⇧</span>
    <span className="text-base font-bold text-slate-800 dark:text-white">Upload your images</span>
