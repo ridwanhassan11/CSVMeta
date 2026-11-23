@@ -83,150 +83,34 @@ export default function ControlsPanel({
   disabled?: boolean;
 }) {
   return (
-    <div className="w-full max-w-[340px] shrink-0 space-y-4">
-      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 transition-colors">
-        <div className="flex items-center gap-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5 text-violet-600 dark:text-violet-400"
-          >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" />
-          </svg>
-          <p className="font-bold text-slate-900 dark:text-white">Generation Settings</p>
-        </div>
-
-        {/* এখানে ক্লিক করলে provider + model + API key ম্যানেজ করার পপআপ খুলবে */}
-        <button
-          onClick={onOpenKeys}
-          disabled={disabled}
-          className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 text-left disabled:opacity-50 hover:border-violet-300 dark:hover:border-violet-500 transition"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {PROVIDER_LABELS[settings.provider]}
-            </p>
-            <p className="truncate text-xs text-slate-400">{getCurrentModelLabel(settings)}</p>
-          </div>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4 shrink-0 text-slate-400"
-          >
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </button>
-
-        <p className="mt-4 mb-2 text-xs font-semibold text-slate-400">GENERATION MODE</p>
-        <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
-          <button
-            onClick={() => onChange({ mode: "metadata" })}
-            disabled={disabled}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
-              settings.mode === "metadata"
-                ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                : "text-slate-500 dark:text-slate-400"
-            }`}
-          >
-            Metadata
+    <div className="w-full min-w-0 space-y-3">
+      <div className="rounded-xl border border-violet-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
+        <div className="mb-3 flex items-center justify-between">
+          <button onClick={onOpenKeys} disabled={disabled} className="flex min-w-0 items-center gap-2 text-left">
+            <span className="text-lg">⚙</span><span className="truncate text-base font-bold text-slate-900 dark:text-white">Generation Settings</span>
+            <span className="truncate text-[11px] text-slate-400">· {PROVIDER_LABELS[settings.provider]}</span>
           </button>
-          <button
-            onClick={() => onChange({ mode: "prompt" })}
-            disabled={disabled}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
-              settings.mode === "prompt"
-                ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                : "text-slate-500 dark:text-slate-400"
-            }`}
-          >
-            Prompt
-          </button>
+          <span className="text-xs text-slate-400">{getCurrentModelLabel(settings)}</span>
         </div>
+        <p className="mb-1.5 text-[11px] font-bold text-slate-500">GENERATION MODE</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => onChange({mode:"metadata"})} disabled={disabled} className={`rounded-lg border px-2 py-2 text-xs font-semibold ${settings.mode==="metadata"?"border-violet-600 bg-violet-600 text-white":"border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300"}`}>▧ Metadata</button>
+          <button onClick={() => onChange({mode:"prompt"})} disabled={disabled} className={`rounded-lg border px-2 py-2 text-xs font-semibold ${settings.mode==="prompt"?"border-violet-600 bg-violet-600 text-white":"border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300"}`}>✧ Image Prompt</button>
+        </div>
+        {settings.mode==="metadata" ? <>
+          <div className="mt-3">
+            <p className="mb-1.5 text-[11px] font-bold text-slate-500">EXPORT PLATFORM</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {PLATFORMS.map(p=><button key={p.id} onClick={()=>onChange({platform:p.id})} disabled={disabled} className={`rounded-lg border px-2 py-2 text-[11px] font-semibold ${settings.platform===p.id?"border-violet-600 bg-violet-600 text-white":"border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"}`}>{p.label}</button>)}
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <label className="min-w-0"><span className="flex justify-between text-[11px] font-bold text-slate-500"><span>Title Length</span><span className="text-violet-600">{settings.titleLength}</span></span><input type="range" min={40} max={200} value={settings.titleLength} onChange={e=>onChange({titleLength:Number(e.target.value)})} disabled={disabled} className="mt-2 w-full accent-violet-600"/></label>
+            <label className="min-w-0"><span className="flex justify-between text-[11px] font-bold text-slate-500"><span>Tags Count</span><span className="text-violet-600">{settings.keywordsCount}</span></span><input type="range" min={10} max={50} value={settings.keywordsCount} onChange={e=>onChange({keywordsCount:Number(e.target.value)})} disabled={disabled} className="mt-2 w-full accent-violet-600"/></label>
+          </div>
+        </> : <textarea value={settings.extraInstructions} onChange={e=>onChange({extraInstructions:e.target.value})} disabled={disabled} rows={3} placeholder="Describe the visual style..." className="mt-3 w-full rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-700 dark:bg-slate-800"/>}
+        <p className="mt-3 rounded-lg bg-violet-50 px-2.5 py-2 text-[10px] text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">✓ Safe sequential generation · one image at a time</p>
       </div>
-
-      <div className="rounded-3xl border border-violet-100 dark:border-violet-900/50 bg-violet-50/60 dark:bg-violet-950/20 p-4 transition-colors">
-        <p className="font-semibold text-slate-900 dark:text-white text-sm">Safe Batch Generation</p>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Images are processed one at a time with a short pause to reduce API rate limits and keep completed results.</p>
-      </div>
-
-      {settings.mode === "metadata" ? (
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-6 transition-colors">
-          <div>
-            <p className="text-xs font-semibold text-slate-400 mb-2">EXPORT PLATFORM</p>
-            <div className="grid grid-cols-2 gap-2">
-              {PLATFORMS.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => onChange({ platform: p.id })}
-                  disabled={disabled}
-                  className={`rounded-xl border px-3 py-2 text-xs font-semibold text-left transition ${
-                    settings.platform === p.id
-                      ? "border-violet-600 bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:border-violet-300 dark:hover:border-violet-500"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between text-xs">
-              <p className="font-semibold text-slate-400">TITLE LENGTH</p>
-              <p className="font-semibold text-violet-600 dark:text-violet-400">{settings.titleLength} chars</p>
-            </div>
-            <input
-              type="range"
-              min={40}
-              max={200}
-              value={settings.titleLength}
-              onChange={(e) => onChange({ titleLength: Number(e.target.value) })}
-              disabled={disabled}
-              className="mt-2 w-full accent-violet-600"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between text-xs">
-              <p className="font-semibold text-slate-400">KEYWORDS COUNT</p>
-              <p className="font-semibold text-violet-600 dark:text-violet-400">{settings.keywordsCount} keywords</p>
-            </div>
-            <input
-              type="range"
-              min={10}
-              max={50}
-              value={settings.keywordsCount}
-              onChange={(e) => onChange({ keywordsCount: Number(e.target.value) })}
-              disabled={disabled}
-              className="mt-2 w-full accent-violet-600"
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 transition-colors">
-          <p className="text-xs font-semibold text-slate-400 mb-2">PROMPT STYLE (optional)</p>
-          <textarea
-            value={settings.extraInstructions}
-            onChange={(e) => onChange({ extraInstructions: e.target.value })}
-            disabled={disabled}
-            rows={6}
-            placeholder="e.g. cinematic lighting, photorealistic, 8k, ultra detailed..."
-            className="w-full box-border rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-700 dark:text-slate-200 resize-none outline-none focus:border-violet-400"
-          />
-        </div>
-      )}
     </div>
   );
 }
