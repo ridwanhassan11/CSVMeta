@@ -155,24 +155,9 @@ export default function ControlsPanel({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex items-center justify-between transition-colors">
-        <div>
-          <p className="font-semibold text-slate-900 dark:text-white text-sm">Batch Generation</p>
-          <p className="text-xs text-slate-400 mt-0.5">Process multiple at once</p>
-        </div>
-        <button
-          onClick={() => onChange({ parallel: !settings.parallel })}
-          disabled={disabled}
-          className={`h-6 w-11 rounded-full transition ${
-            settings.parallel ? "bg-violet-600" : "bg-slate-200 dark:bg-slate-700"
-          }`}
-        >
-          <div
-            className={`h-5 w-5 rounded-full bg-white transition-transform ${
-              settings.parallel ? "translate-x-5" : "translate-x-0.5"
-            }`}
-          />
-        </button>
+      <div className="rounded-3xl border border-violet-100 dark:border-violet-900/50 bg-violet-50/60 dark:bg-violet-950/20 p-4 transition-colors">
+        <p className="font-semibold text-slate-900 dark:text-white text-sm">Safe Batch Generation</p>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Images are processed one at a time with a short pause to reduce API rate limits and keep completed results.</p>
       </div>
 
       {settings.mode === "metadata" ? (
