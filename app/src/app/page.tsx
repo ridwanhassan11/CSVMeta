@@ -53,7 +53,7 @@ export default function HomePage(){
  useEffect(()=>{if(hydrated)localStorage.setItem(KEY_STORAGE,JSON.stringify(savedKeys));},[hydrated,savedKeys]);
  useEffect(()=>{if(hydrated)localStorage.setItem(HISTORY_STORAGE,JSON.stringify(history.slice(0,100)));},[hydrated,history]);
  useEffect(()=>{if(hydrated)localStorage.setItem(SETTINGS_STORAGE,JSON.stringify(settings));},[hydrated,settings]);
- const updateSettings=useCallback((p:Partial<GenerationSettings>)=>setSettings(s=>({...s,...p})),[]);
+ const updateSettings=useCallback((p:Partial<GenerationSettings>)=>setSettings(s=>{const next={...s,...p};try{localStorage.setItem(SETTINGS_STORAGE,JSON.stringify(next));}catch{}return next;}),[]);
  const updateImage=useCallback((id:string,p:Partial<ImageItem>)=>setImages(xs=>xs.map(x=>x.id===id?{...x,...p}:x)),[]);
  const addFiles=useCallback((files:File[])=>{const valid=files.filter(f=>f.type.startsWith("image/"));const added=valid.slice(0,Math.max(0,100-images.length)).map(file=>({id:crypto.randomUUID(),file,previewUrl:URL.createObjectURL(file),status:"pending" as const}));setImages(xs=>[...xs,...added]);setNotice(added.length?"":"Choose image files (PNG, JPG, WEBP), up to 100.");},[images.length]);
  const removeImage=useCallback((id:string)=>{setImages(xs=>{const x=xs.find(i=>i.id===id);if(x)URL.revokeObjectURL(x.previewUrl);return xs.filter(i=>i.id!==id);});setSelectedId(x=>x===id?null:x);},[]);
@@ -131,7 +131,7 @@ export default function HomePage(){
  </section>
 
  <div className={`w-full min-w-0 overflow-hidden ${images.length===0?"hidden":""}`}>
- {notice&&<p role="status" className="my-2 text-sm text-slate-500">{notice}</p>}<PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
+ <PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage} notice={notice}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
  </div>
  
  </div>
