@@ -71,10 +71,9 @@ export default function PreviewGrid({
           <thead>
             <tr className="bg-violet-600 text-sm text-white">
               <th className="w-12 px-3 py-3 font-semibold">#</th>
-              <th className="w-36 px-3 py-3 font-semibold">Image</th>
-              <th className="w-56 px-3 py-3 font-semibold">Title</th>
-              <th className="px-3 py-3 font-semibold">Tags</th>
-              <th className="w-72 px-3 py-3 font-semibold">Description</th>
+              <th className="w-72 px-3 py-3 font-semibold">Image</th>
+              <th className="px-3 py-3 font-semibold">Title</th>
+              <th className="w-72 px-3 py-3 font-semibold">Keywords</th>
             </tr>
           </thead>
           <tbody>
@@ -89,7 +88,7 @@ export default function PreviewGrid({
                 <td className="px-3 py-4 text-lg font-bold text-slate-900 dark:text-white">{index + 1}</td>
 
                 <td className="px-3 py-3">
-                  <div className="relative h-20 w-28 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
+                  <div className="relative h-28 w-full max-w-[260px] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
                     <img src={img.previewUrl} alt={img.file.name} className="h-full w-full object-cover" />
                     <span
                       className={`absolute left-1 top-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusStyle[img.status]}`}
@@ -109,7 +108,7 @@ export default function PreviewGrid({
                 </td>
 
                 {img.status !== "done" ? (
-                  <td colSpan={3} className="px-3 py-4 text-sm">
+                  <td colSpan={2} className="px-3 py-4 text-sm">
                     <p className="truncate font-semibold text-slate-900 dark:text-white">{img.file.name}</p>
                     {img.status === "pending" && <p className="mt-1 text-slate-400">Waiting to generate...</p>}
                     {img.status === "loading" && (
@@ -211,21 +210,13 @@ export default function PreviewGrid({
                       </button>
                     </td>
 
-                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                      <textarea
-                        value={img.description || ""}
-                        rows={4}
-                        onChange={(e) => onUpdate(img.id, { description: e.target.value })}
-                        className={fieldClass}
-                      />
-                    </td>
                   </>
                 )}
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-sm text-slate-400">
+                <td colSpan={4} className="px-3 py-8 text-center text-sm text-slate-400">
                   No results found.
                 </td>
               </tr>
