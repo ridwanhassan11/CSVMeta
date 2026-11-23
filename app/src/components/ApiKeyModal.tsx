@@ -92,6 +92,7 @@ const PROVIDER_META: Record<Provider, ProviderMetaEntry> = {
 };
 
 const GEMINI_MODELS: { id: GeminiModel; label: string }[] = [
+  { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash (Recommended)" },
   { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro" },
   { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
   { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
