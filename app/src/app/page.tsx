@@ -119,7 +119,7 @@ export default function HomePage(){
  <div className="px-3 py-3 md:px-3">
  {activeTab==="History"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="mb-4 text-lg font-bold">Generation History</h2>{history.length?history.map(h=><article key={h.id+h.createdAt} className="border-b py-3"><b>{h.fileName}</b><p>{h.title||h.prompt}</p><small>{new Date(h.createdAt).toLocaleString()}</small></article>):<p className="text-sm text-slate-500">No history yet.</p>}</section>:activeTab==="Templates"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Prompt Templates</h2>{["Commercial stock photography, clear subject and natural lighting","Minimal composition with clean background","Editorial photography with authentic atmosphere"].map(t=><button key={t} onClick={()=>{updateSettings({mode:"prompt",extraInstructions:t});setActiveTab("Generate");}} className="m-2 rounded-xl border p-3 text-left">{t}</button>)}</section>:activeTab==="Settings"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Settings</h2><p className="my-3 text-sm text-slate-500">API keys are stored in this browser.</p><button onClick={()=>setKeysOpen(true)} className="rounded-xl bg-violet-700 px-4 py-2 text-white">Manage API Keys</button></section>:<>
  <div className="grid items-start gap-3 min-[900px]:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)_minmax(0,0.95fr)]">
- <section style={{gridColumn:images.length===0?"1 / 3":"1 / 2",gridRow:"1"}} className="min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-2.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
+ <section style={{gridColumn:"1 / 3",gridRow:"1"}} className="min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-2.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
   <button type="button"
    onClick={()=>fileInputRef.current?.click()}
    onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add("border-violet-600","bg-violet-50/80");}}
@@ -135,18 +135,21 @@ export default function HomePage(){
    {images.length>0&&<span className="absolute right-3 top-3 rounded-full bg-violet-700 px-3 py-1 text-xs font-semibold text-white">{images.length} uploaded</span>}
   </button>
   <input ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={e=>{const files=Array.from(e.currentTarget.files||[]);if(files.length)addFiles(files);e.currentTarget.value="";}} />
+
+ </section>
+ <div style={{gridColumn:"1 / 3",gridRow:"2"}} className={images.length>0?"min-w-0":"hidden"}>
   {images.length>0&&<div className="mt-2 flex min-h-[58px] items-center gap-2 overflow-x-auto pb-1">
    {images.map((img)=><button key={img.id} onClick={()=>setSelectedId(img.id)} className={`relative h-14 w-[74px] shrink-0 overflow-hidden rounded-lg border-2 ${selectedId===img.id?"border-violet-600":"border-transparent"}`}><img src={img.previewUrl} alt={img.file.name} className="h-full w-full object-cover"/><span className="absolute bottom-0 right-0 rounded-tl bg-black/65 px-1 text-[9px] text-white">{img.status==="done"?"✓":img.status==="error"?"!":""}</span></button>)}
    <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex h-14 w-[58px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed border-violet-300 text-2xl text-violet-700 hover:bg-violet-50" aria-label="Add images">+</button>
   </div>}
   <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
- </section>
+ </div>
 
- <div style={{gridColumn:"1 / 3",gridRow:"2"}} className={`w-full min-w-0 overflow-hidden ${images.length===0?"hidden":""}`}>
+ <div style={{gridColumn:"1 / 3",gridRow:"3"}} className={`w-full min-w-0 overflow-hidden ${images.length===0?"hidden":""}`}>
 
  {notice&&<p role="status" className="my-2 text-sm text-slate-500">{notice}</p>}<PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
  </div>
- <section style={{gridColumn:"3 / 4",gridRow:"1 / span 2"}} className="min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start min-[900px]:min-h-[calc(100vh-74px)] w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-3.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
+ <section style={{gridColumn:"3 / 4",gridRow:"1 / span 3"}} className="min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start min-[900px]:min-h-[calc(100vh-74px)] w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-3.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
   <div className="mb-3 flex items-center justify-between"><h2 className="font-bold text-slate-900 dark:text-white">⚙ Generation Settings</h2><button onClick={()=>setSettings(DEFAULT_SETTINGS)} disabled={busy} className="text-xs font-semibold text-violet-700">↻ Reset</button></div>
   <ControlsPanel settings={settings} onChange={updateSettings} onOpenKeys={()=>setKeysOpen(true)} disabled={busy}/>
   <button onClick={generateAll} disabled={!images.length||busy} className="mt-4 w-full rounded-xl bg-violet-700 px-6 py-3 font-bold text-white shadow-md shadow-violet-700/20 disabled:opacity-40">{busy?"Generating…":"✦ Generate Metadata"}</button>
