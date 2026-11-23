@@ -1,7 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 
 const PLATFORM_LABELS: Record<string, string> = {
   general: "a general stock photography platform",
@@ -156,6 +155,9 @@ async function generateWithOpenAICompatible(opts: {
   return json.choices?.[0]?.message?.content || "";
 }
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -183,22 +185,17 @@ export async function POST(req: Request) {
       );
     }
 
-    const originalBuffer = Buffer.from(await file.arrayBuffer());
-
-    let buffer: Buffer;
-    let mimeType: string;
-    try {
-      buffer = await sharp(originalBuffer)
-        .resize(1568, 1568, { fit: "inside", withoutEnlargement: true })
-        .jpeg({ quality: 80 })
-        .toBuffer();
-      mimeType = "image/jpeg";
-    } catch (resizeError: any) {
+    if (file.size > 4_000_000) {
       return NextResponse.json(
-        { success: false, error: `Image processing failed: ${resizeError?.message}` },
-        { status: 500 }
+        { success: false, error: "Image is still too large after compression. Please use an image under 4 MB." },
+        { status: 413 }
       );
     }
+
+    // The browser compresses images before upload. Avoid native Sharp processing
+    // in the serverless function so image requests cannot fail during module loading.
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const mimeType = file.type || "image/jpeg";
 
     const includeDescription = PLATFORMS_WITH_DESCRIPTION.includes(platform);
 
