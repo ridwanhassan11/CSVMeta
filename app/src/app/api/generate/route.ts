@@ -163,7 +163,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const provider = (formData.get("provider") as string) || "gemini";
-    const geminiModel = (formData.get("geminiModel") as string) || "gemini-2.5-flash";
+    const geminiModel = (formData.get("geminiModel") as string) || "gemini-3.8-flash";
     const mistralModel = (formData.get("mistralModel") as string) || "pixtral-large-latest";
     const openaiModel = (formData.get("openaiModel") as string) || "gpt-4o";
     const openrouterModel = (formData.get("openrouterModel") as string) || "google/gemini-2.5-flash";
