@@ -36,7 +36,7 @@ export default function Sidebar({ active = "Generate", onNavigate }: { active?: 
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-col transition-colors">
+    <aside className="fixed left-0 top-0 bottom-0 w-[210px] border-r border-slate-200 dark:border-slate-800 bg-[#f7f4ff] dark:bg-slate-900 px-3 py-5 flex flex-col transition-colors">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden">
           <img src="/logo-icon.png" alt="Metadata logo" className="h-full w-full object-contain" />
@@ -47,12 +47,12 @@ export default function Sidebar({ active = "Generate", onNavigate }: { active?: 
         </div>
       </div>
 
-      <nav className="mt-10 space-y-1">
+      <nav className="mt-7 space-y-1">
         {items.map((item) => (
           <button
             key={item}
             onClick={() => onNavigate?.(item)}
-            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
               item === active
                 ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
                 : "text-slate-500 dark:text-slate-400 hover:bg-violet-50 dark:hover:bg-slate-800"
