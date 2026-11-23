@@ -67,11 +67,20 @@ export default function HomePage(){
  {activeTab==="History"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="mb-4 text-lg font-bold">Generation History</h2>{history.length?history.map(h=><article key={h.id+h.createdAt} className="border-b py-3"><b>{h.fileName}</b><p>{h.title||h.prompt}</p><small>{new Date(h.createdAt).toLocaleString()}</small></article>):<p className="text-sm text-slate-500">No history yet.</p>}</section>:activeTab==="Templates"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Prompt Templates</h2>{["Commercial stock photography, clear subject and natural lighting","Minimal composition with clean background","Editorial photography with authentic atmosphere"].map(t=><button key={t} onClick={()=>{updateSettings({mode:"prompt",extraInstructions:t});setActiveTab("Generate");}} className="m-2 rounded-xl border p-3 text-left">{t}</button>)}</section>:activeTab==="Settings"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Settings</h2><p className="my-3 text-sm text-slate-500">API keys are stored in this browser.</p><button onClick={()=>setKeysOpen(true)} className="rounded-xl bg-violet-700 px-4 py-2 text-white">Manage API Keys</button></section>:<>
  <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.18fr)_minmax(430px,.92fr)]">
  <section className="overflow-hidden rounded-2xl border border-violet-100 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-  <div className="relative flex h-[260px] items-center justify-center overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
-   {selected?<img src={selected.previewUrl} alt={selected.file.name} className="h-full w-full object-contain"/>:<div className="text-center text-slate-400"><div className="text-4xl">▧</div><p className="mt-2 text-sm">Upload images to preview</p></div>}
-   <span className="absolute left-3 top-3 rounded-full bg-violet-700 px-3 py-1 text-xs font-semibold text-white">◉ Preview</span>
-   {selected&&<span className="absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-1 text-xs text-white">{selected.file.name}</span>}
-  </div>
+  <button type="button"
+   onClick={()=>fileInputRef.current?.click()}
+   onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add("border-violet-600","bg-violet-50/80");}}
+   onDragLeave={e=>{e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");}}
+   onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");const dropped=Array.from(e.dataTransfer.files).filter(file=>file.type.startsWith("image/"));if(dropped.length)addFiles(dropped);}}
+   className="group relative flex h-[260px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
+   aria-label="Upload images">
+   <span className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-3xl text-violet-700 transition group-hover:scale-105 dark:bg-violet-950 dark:text-violet-300">⇧</span>
+   <span className="text-base font-bold text-slate-800 dark:text-white">Upload your images</span>
+   <span className="mt-1 text-sm text-slate-500 dark:text-slate-400">Drag & drop images here, or click to browse</span>
+   <span className="mt-3 rounded-lg bg-violet-700 px-5 py-2 text-sm font-semibold text-white shadow-sm">Choose Images</span>
+   <span className="mt-2 text-xs text-slate-400">PNG, JPG, WEBP • Multiple images supported</span>
+   {images.length>0&&<span className="absolute right-3 top-3 rounded-full bg-violet-700 px-3 py-1 text-xs font-semibold text-white">{images.length} uploaded</span>}
+  </button>
   <input ref={fileInputRef} type="file" accept="image/*" multiple className="sr-only" onChange={e=>{const files=Array.from(e.currentTarget.files||[]);if(files.length)addFiles(files);e.currentTarget.value="";}} />
   <div className="mt-2 flex min-h-[58px] items-center gap-2 overflow-x-auto pb-1">
    {images.map((img)=><button key={img.id} onClick={()=>setSelectedId(img.id)} className={`relative h-14 w-[74px] shrink-0 overflow-hidden rounded-lg border-2 ${selectedId===img.id?"border-violet-600":"border-transparent"}`}><img src={img.previewUrl} alt={img.file.name} className="h-full w-full object-cover"/><span className="absolute bottom-0 right-0 rounded-tl bg-black/65 px-1 text-[9px] text-white">{img.status==="done"?"✓":img.status==="error"?"!":""}</span></button>)}
