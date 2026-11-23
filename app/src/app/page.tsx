@@ -62,18 +62,19 @@ export default function HomePage(){
  const selected=useMemo(()=>images.find(x=>x.id===selectedId)||images.find(x=>x.status==="done")||null,[images,selectedId]);
  const addKey=(p:Provider,key:string)=>{setSavedKeys(k=>({...k,[p]:[...(k[p]||[]),key]}));setActiveKeys(a=>({...a,[p]:(savedKeys[p]||[]).length}));};
  const removeKey=(p:Provider,i:number)=>{setSavedKeys(k=>({...k,[p]:k[p].filter((_,n)=>n!==i)}));setActiveKeys(a=>({...a,[p]:undefined}));};
- return <div className="min-h-screen bg-[#fbfaff] text-slate-950"><Sidebar active={activeTab} onNavigate={setActiveTab}/>
- <main className="min-h-screen px-4 py-5 md:ml-[210px] md:px-5"><div className="mx-auto max-w-[1600px]">
- <header className="mb-4 flex items-center justify-between"><h1 className="text-xl font-extrabold"><span className="mr-2 text-violet-700">✦</span>{activeTab==="Generate"?"Generate Metadata":activeTab}</h1><button onClick={()=>setKeysOpen(true)} className="rounded-full bg-violet-100 px-4 py-2 text-sm font-bold text-violet-700">API Keys</button></header>
+ return <div className="min-h-screen bg-[#f8f6ff] text-slate-950 dark:bg-slate-950"><Sidebar active={activeTab} onNavigate={setActiveTab}/>
+ <main className="min-h-screen md:ml-[210px]"><div className="mx-auto max-w-[1600px]">
+ <header className="sticky top-0 z-20 flex h-[46px] items-center justify-between border-b border-[#eee8f8] bg-[#fbfaff]/95 px-5 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"><h1 className="text-[17px] font-extrabold"><span className="mr-2 text-violet-700">✦</span>{activeTab==="Generate"?"Generate Metadata":activeTab}</h1><div className="flex items-center gap-5 text-lg text-slate-700 dark:text-slate-300"><button aria-label="Help">ⓘ</button><button aria-label="Notifications">♧</button><button onClick={()=>setKeysOpen(true)} aria-label="API Keys" className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-sm text-white">●</button></div></header>
+ <div className="px-3 py-3 md:px-3">
  {activeTab==="History"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="mb-4 text-lg font-bold">Generation History</h2>{history.length?history.map(h=><article key={h.id+h.createdAt} className="border-b py-3"><b>{h.fileName}</b><p>{h.title||h.prompt}</p><small>{new Date(h.createdAt).toLocaleString()}</small></article>):<p className="text-sm text-slate-500">No history yet.</p>}</section>:activeTab==="Templates"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Prompt Templates</h2>{["Commercial stock photography, clear subject and natural lighting","Minimal composition with clean background","Editorial photography with authentic atmosphere"].map(t=><button key={t} onClick={()=>{updateSettings({mode:"prompt",extraInstructions:t});setActiveTab("Generate");}} className="m-2 rounded-xl border p-3 text-left">{t}</button>)}</section>:activeTab==="Settings"?<section className="rounded-2xl border border-violet-100 bg-white p-5"><h2 className="font-bold">Settings</h2><p className="my-3 text-sm text-slate-500">API keys are stored in this browser.</p><button onClick={()=>setKeysOpen(true)} className="rounded-xl bg-violet-700 px-4 py-2 text-white">Manage API Keys</button></section>:<>
- <div className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.18fr)_minmax(430px,.92fr)]">
- <section className="overflow-hidden rounded-2xl border border-violet-100 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+ <div className="grid items-stretch gap-3 xl:grid-cols-[minmax(0,1.18fr)_minmax(430px,.92fr)]">
+ <section className="overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-2.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
   <button type="button"
    onClick={()=>fileInputRef.current?.click()}
    onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add("border-violet-600","bg-violet-50/80");}}
    onDragLeave={e=>{e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");}}
    onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");const dropped=Array.from(e.dataTransfer.files).filter(file=>file.type.startsWith("image/"));if(dropped.length)addFiles(dropped);}}
-   className="group relative flex h-[260px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
+   className="group relative flex h-[260px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
    aria-label="Upload images">
    <span className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-3xl text-violet-700 transition group-hover:scale-105 dark:bg-violet-950 dark:text-violet-300">⇧</span>
    <span className="text-base font-bold text-slate-800 dark:text-white">Upload your images</span>
@@ -88,14 +89,14 @@ export default function HomePage(){
    <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex h-14 w-[58px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed border-violet-300 text-2xl text-violet-700 hover:bg-violet-50" aria-label="Add images">+</button>
   </div>
  </section>
- <section className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+ <section className="rounded-2xl border border-[#e8e1f6] bg-white p-3.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
   <div className="mb-3 flex items-center justify-between"><h2 className="font-bold text-slate-900 dark:text-white">⚙ Generation Settings</h2><button onClick={()=>setSettings(DEFAULT_SETTINGS)} disabled={busy} className="text-xs font-semibold text-violet-700">↻ Reset</button></div>
   <ControlsPanel settings={settings} onChange={updateSettings} onOpenKeys={()=>setKeysOpen(true)} disabled={busy}/>
   <button onClick={generateAll} disabled={!images.length||busy} className="mt-4 w-full rounded-xl bg-violet-700 px-6 py-3 font-bold text-white shadow-md shadow-violet-700/20 disabled:opacity-40">{busy?"Generating…":"✦ Generate Metadata"}</button>
  </section>
 </div>
- <div className="mt-5 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
+ <div className="mt-3 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
  {notice&&<p role="status" className="my-2 text-sm text-slate-500">{notice}</p>}<PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
- </>}</div></main>
+ </>}</div></div></main>
  <ApiKeyModal open={keysOpen} settings={settings} onChange={updateSettings} savedKeys={savedKeys} addKey={addKey} removeKey={removeKey} setActiveKey={(p,i)=>setActiveKeys(a=>({...a,[p]:i}))} close={()=>setKeysOpen(false)}/></div>;
 }
