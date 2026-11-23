@@ -9,7 +9,7 @@ import ApiKeyModal from "@/components/ApiKeyModal";
 import PreviewGrid from "@/components/PreviewGrid";
 import ResultCard from "@/components/ResultCard";
 import type { ImageItem } from "@/types/image";
-const DEFAULT_SETTINGS: GenerationSettings = { provider:"gemini",geminiModel:"gemini-2.5-flash",mistralModel:"pixtral-large-latest",openaiModel:"gpt-4o",openrouterModel:"google/gemini-2.5-flash",mode:"metadata",platform:"general",titleLength:140,keywordsCount:43,extraInstructions:"",parallel:false };
+const DEFAULT_SETTINGS: GenerationSettings = { provider:"gemini",geminiModel:"gemini-3.5-flash",mistralModel:"pixtral-large-latest",openaiModel:"gpt-4o",openrouterModel:"google/gemini-2.5-flash",mode:"metadata",platform:"general",titleLength:140,keywordsCount:43,extraInstructions:"",parallel:false };
 const EMPTY_KEYS: Record<Provider,string[]> = {gemini:[],groq:[],mistral:[],openai:[],openrouter:[]};
 const KEY_STORAGE="csvmeta-provider-keys-v1", HISTORY_STORAGE="csvmeta-history-v1";
 type HistoryItem={id:string;fileName:string;title?:string;prompt?:string;createdAt:string};
