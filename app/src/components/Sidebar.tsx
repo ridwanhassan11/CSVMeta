@@ -31,7 +31,7 @@ function NavIcon({ name }: { name: NavItem }) {
   );
 }
 
-export default function Sidebar({ active = "Generate" }: { active?: NavItem }) {
+export default function Sidebar({ active = "Generate", onNavigate }: { active?: NavItem; onNavigate?: (item: NavItem) => void }) {
   const items: NavItem[] = ["Generate", "Metadata", "History", "Templates", "Settings"];
   const { theme, toggleTheme } = useTheme();
 
@@ -51,6 +51,7 @@ export default function Sidebar({ active = "Generate" }: { active?: NavItem }) {
         {items.map((item) => (
           <button
             key={item}
+            onClick={() => onNavigate?.(item)}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
               item === active
                 ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
