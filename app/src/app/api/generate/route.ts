@@ -251,9 +251,28 @@ export async function POST(req: Request) {
           rawText = await generateWithGemini(apiKey, geminiModel, buffer, mimeType, prompt);
       }
     } catch (providerError: any) {
+      const providerMessage = String(providerError?.message || "Provider error");
+      const quotaExceeded =
+        providerError?.status === 429 ||
+        /429|quota exceeded|resource_exhausted|rate.?limit|generate_content_free_tier_requests/i.test(providerMessage);
+
+      if (quotaExceeded) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "PROVIDER_QUOTA_EXCEEDED",
+            error:
+              provider === "gemini"
+                ? "Google Gemini API-এর Free Tier quota শেষ হয়েছে। একই API key দিয়ে এখন নতুন generation সম্ভব নয়। Quota reset হওয়া পর্যন্ত অপেক্ষা করুন, অথবা Billing চালু করুন/অন্য provider-এর API key ব্যবহার করুন।"
+                : "এই AI provider-এর request quota/rate limit শেষ হয়েছে। Quota reset হওয়া পর্যন্ত অপেক্ষা করুন অথবা অন্য provider ব্যবহার করুন।",
+          },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
-        { success: false, error: providerError?.message || "Provider error" },
-        { status: 401 }
+        { success: false, error: providerMessage },
+        { status: providerError?.status && providerError.status >= 400 ? providerError.status : 500 }
       );
     }
 
