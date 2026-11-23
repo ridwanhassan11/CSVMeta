@@ -125,7 +125,7 @@ export default function HomePage(){
    onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add("border-violet-600","bg-violet-50/80");}}
    onDragLeave={e=>{e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");}}
    onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove("border-violet-600","bg-violet-50/80");const dropped=Array.from(e.dataTransfer.files).filter(file=>file.type.startsWith("image/"));if(dropped.length)addFiles(dropped);}}
-   className="group relative flex h-[260px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
+   className="group relative flex h-[390px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
    aria-label="Upload images">
    <span className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-3xl text-violet-700 transition group-hover:scale-105 dark:bg-violet-950 dark:text-violet-300">⇧</span>
    <span className="text-base font-bold text-slate-800 dark:text-white">Upload your images</span>
@@ -139,11 +139,11 @@ export default function HomePage(){
    {images.map((img)=><button key={img.id} onClick={()=>setSelectedId(img.id)} className={`relative h-14 w-[74px] shrink-0 overflow-hidden rounded-lg border-2 ${selectedId===img.id?"border-violet-600":"border-transparent"}`}><img src={img.previewUrl} alt={img.file.name} className="h-full w-full object-cover"/><span className="absolute bottom-0 right-0 rounded-tl bg-black/65 px-1 text-[9px] text-white">{img.status==="done"?"✓":img.status==="error"?"!":""}</span></button>)}
    <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex h-14 w-[58px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-dashed border-violet-300 text-2xl text-violet-700 hover:bg-violet-50" aria-label="Add images">+</button>
   </div>}
+  <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
  </section>
 
  <div className="min-w-0 min-[900px]:col-start-2 min-[900px]:row-start-1">
 
- <div className="mt-2 flex flex-wrap items-center gap-2"><span className="mr-auto text-sm text-slate-500">{images.length} image(s) uploaded</span><button onClick={()=>{images.forEach(x=>URL.revokeObjectURL(x.previewUrl));setImages([]);setSelectedId(null);}} disabled={!images.length||busy} className="rounded-lg border px-3 py-2 text-xs">Clear All</button><button onClick={()=>csvDownload(images)} disabled={!images.some(x=>x.status==="done"&&x.prompt===undefined)} className="rounded-lg bg-violet-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">↓ Export CSV</button></div>
  {notice&&<p role="status" className="my-2 text-sm text-slate-500">{notice}</p>}<PreviewGrid images={images} selectedId={selectedId} onSelect={setSelectedId} onRemove={removeImage} onUpdate={updateImage}/>{images.length>0&&<ResultCard image={selected} onUpdate={updateImage}/>}
  </div>
  <section className="min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start min-[900px]:min-h-[calc(100vh-74px)] min-w-0 min-[900px]:col-start-3 min-[900px]:row-start-1 rounded-2xl border border-[#e8e1f6] bg-white p-3.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
