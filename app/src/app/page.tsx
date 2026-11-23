@@ -9,7 +9,7 @@ import ApiKeyModal from "@/components/ApiKeyModal";
 import PreviewGrid from "@/components/PreviewGrid";
 import ResultCard from "@/components/ResultCard";
 import type { ImageItem } from "@/types/image";
-const DEFAULT_SETTINGS: GenerationSettings = { provider:"gemini",geminiModel:"gemini-3.5-flash",mistralModel:"pixtral-large-latest",openaiModel:"gpt-4o",openrouterModel:"google/gemini-2.5-flash",mode:"metadata",platform:"general",titleLength:140,keywordsCount:43,extraInstructions:"",parallel:false };
+const DEFAULT_SETTINGS: GenerationSettings = { provider:"gemini",geminiModel:"gemini-3.8-flash",mistralModel:"pixtral-large-latest",openaiModel:"gpt-4o",openrouterModel:"google/gemini-2.5-flash",mode:"metadata",platform:"general",titleLength:140,keywordsCount:43,extraInstructions:"",parallel:false };
 const EMPTY_KEYS: Record<Provider,string[]> = {gemini:[],groq:[],mistral:[],openai:[],openrouter:[]};
 const KEY_STORAGE="csvmeta-provider-keys-v1", HISTORY_STORAGE="csvmeta-history-v1";
 type HistoryItem={id:string;fileName:string;title?:string;prompt?:string;createdAt:string};
@@ -64,53 +64,39 @@ export default function HomePage(){
   if(generationLock.current)return;
   const pending=images.filter(x=>x.status==="pending"||x.status==="error");
   if(!pending.length){setNotice("নতুন ছবি যোগ করুন অথবা failed ছবিগুলো আবার চেষ্টা করুন।");return;}
-  const keys=savedKeys[settings.provider]||[];
-  if(!keys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
+  const apiKey=getKey(settings.provider);
+  if(!apiKey){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
   generationLock.current=true;stopRequested.current=false;setBusy(true);
   let completed=images.filter(x=>x.status==="done").length;
-  let failed=0;let stopped=false;
-  const preferred=activeKeys[settings.provider]??(keys.length-1);
-  const orderedKeys=keys.map((key,index)=>({key,index})).filter(x=>x.key);
-  const rotated=[...orderedKeys.slice(Math.max(0,preferred)),...orderedKeys.slice(0,Math.max(0,preferred))];
-  let remaining=[...pending];
+  let failed=0;let stopped=false;let quotaStopped=false;
   try{
-   // Two full passes: finish the whole queue once, then retry only the leftovers.
-   for(let pass=1;pass<=2&&remaining.length;pass++){
-    const retryQueue=[];
-    setNotice(pass===1
-      ?`প্রথম ধাপ: ${remaining.length}টি ছবি ধারাবাহিকভাবে তৈরি করা হচ্ছে। প্রতিটি সংরক্ষিত API key চেষ্টা হবে।`
-      : `দ্বিতীয় ধাপ: প্রথম ধাপে বাকি থাকা ${remaining.length}টি ছবি আবার চেষ্টা করা হচ্ছে।`);
-    for(let index=0;index<remaining.length;index++){
-     const item=remaining[index];let succeeded=false;let lastFailure="";
-     for(let keyIndex=0;keyIndex<rotated.length&&!succeeded;keyIndex++){
-      const entry=rotated[keyIndex];
-      setNotice(`ধাপ ${pass}/2 · ছবি ${index+1}/${remaining.length}: ${item.file.name} · API key ${keyIndex+1}/${rotated.length}`);
-      succeeded=await generateOne(item,entry.key);
-      if(succeeded){setActiveKeys(a=>({...a,[settings.provider]:entry.index}));break;}
-      lastFailure=lastGenerationError.current||"Generation failed.";
-      if(keyIndex<rotated.length-1){
-       setNotice(`এই Key-তে তৈরি হয়নি; একই ছবির জন্য পরের API Key চেষ্টা করছি…`);
-       await new Promise(resolve=>setTimeout(resolve,1200));
-      }
+   // Exactly one API request per image. Do not rotate keys or repeat failed requests.
+   for(let index=0;index<pending.length;index++){
+    const item=pending[index];
+    setNotice(`ছবি ${index+1}/${pending.length}: ${item.file.name} · একবারই চেষ্টা করা হচ্ছে`);
+    const succeeded=await generateOne(item,apiKey);
+    if(succeeded)completed++;
+    else{
+     failed++;
+     const failure=lastGenerationError.current||"Generation failed.";
+     if(/429|quota|resource[_ ]?exhausted|rate.?limit|too many requests/i.test(failure)){
+      quotaStopped=true;
+      setNotice(`API quota/rate limit পাওয়া গেছে। আর request পাঠানো বন্ধ করা হয়েছে। ${item.file.name}: ${failure}`);
+      break;
      }
-     if(succeeded)completed++;
-     else{
-      retryQueue.push(item);
-      updateImage(item.id,{status:"error",error:lastFailure||"All saved API keys failed."});
-     }
-     if(stopRequested.current){stopped=true;retryQueue.push(...remaining.slice(index+1));setNotice("আপনার অনুরোধে generation বন্ধ করা হয়েছে। বাকি ছবিগুলো queue-তে রাখা হয়েছে।");break;}
-     if(index<remaining.length-1)await new Promise(resolve=>setTimeout(resolve,1200));
     }
-    remaining=retryQueue;
-    if(stopped)break;
+    if(stopRequested.current){stopped=true;setNotice("আপনার অনুরোধে generation বন্ধ করা হয়েছে। বাকি ছবিগুলো queue-তে রাখা হয়েছে।");break;}
+    if(index<pending.length-1)await new Promise(resolve=>setTimeout(resolve,1200));
    }
-   failed=remaining.length;
+   failed=pending.filter(x=>x.status==="error").length;
   }finally{
    generationLock.current=false;stopRequested.current=false;setBusy(false);
-   if(!stopped){
+   if(!stopped&&!quotaStopped){
     setNotice(failed
-      ?`দুই ধাপের generation শেষ। সফল: ${completed}টি। এখনো বাকি: ${failed}টি — এগুলো Error অবস্থায় রাখা হয়েছে, চাইলে আবার Generate করতে পারবেন।`
+      ?`Generation শেষ। সফল: ${completed}টি। ব্যর্থ: ${failed}টি। ব্যর্থ ছবিগুলো চাইলে পরে আবার চেষ্টা করতে পারবেন।`
       :`সব ছবি সফলভাবে তৈরি সম্পন্ন। মোট সফল: ${completed}টি।`);
+   }else if(quotaStopped){
+    setNotice(`Quota/rate limit-এর কারণে থেমেছে। সফল: ${completed}টি। ব্যর্থ: ${failed}টি। বাকি ছবিগুলো queue-তে আছে; quota reset হলে আবার চালাতে পারবেন।`);
    }
   }
  };
