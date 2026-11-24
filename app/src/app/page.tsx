@@ -11,7 +11,7 @@ import ResultCard from "@/components/ResultCard";
 import type { ImageItem } from "@/types/image";
 const DEFAULT_SETTINGS: GenerationSettings = { provider:"gemini",geminiModel:"gemini-3.8-flash",mistralModel:"pixtral-large-latest",openaiModel:"gpt-4o",openrouterModel:"google/gemini-2.5-flash",mode:"metadata",platform:"general",titleLength:140,keywordsCount:43,extraInstructions:"",parallel:false };
 const EMPTY_KEYS: Record<Provider,string[]> = {gemini:[],groq:[],mistral:[],openai:[],openrouter:[]};
-const KEY_STORAGE="csvmeta-provider-keys-v1", HISTORY_STORAGE="csvmeta-history-v1", SETTINGS_STORAGE="csvmeta-generation-settings-v1";
+const KEY_STORAGE="csvmeta-provider-keys-v1", HISTORY_STORAGE="csvmeta-history-v1", SETTINGS_STORAGE="csvmeta-generation-settings-v1", ACTIVE_KEYS_STORAGE="csvmeta-active-keys-v1";
 type HistoryItem={id:string;fileName:string;title?:string;prompt?:string;createdAt:string};
 function csvDownload(images:ImageItem[]) {
  const rows=images.filter(x=>x.status==="done"&&x.prompt===undefined); if(!rows.length)return;
@@ -49,10 +49,11 @@ export default function HomePage(){
  const [activeKeys,setActiveKeys]=useState<Partial<Record<Provider,number>>>({}),[keysOpen,setKeysOpen]=useState(false);
  const [busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[history,setHistory]=useState<HistoryItem[]>([]);
  const [activeTab,setActiveTab]=useState<"Generate"|"Metadata"|"History"|"Templates"|"Settings">("Generate"),[hydrated,setHydrated]=useState(false);
- useEffect(()=>{try{const k=localStorage.getItem(KEY_STORAGE),h=localStorage.getItem(HISTORY_STORAGE),s=localStorage.getItem(SETTINGS_STORAGE);if(k)setSavedKeys({...EMPTY_KEYS,...JSON.parse(k)});if(h)setHistory(JSON.parse(h));if(s)setSettings({...DEFAULT_SETTINGS,...JSON.parse(s)});}catch{setNotice("Could not load saved browser data.");}setHydrated(true);},[]);
+ useEffect(()=>{try{const k=localStorage.getItem(KEY_STORAGE),h=localStorage.getItem(HISTORY_STORAGE),s=localStorage.getItem(SETTINGS_STORAGE),a=localStorage.getItem(ACTIVE_KEYS_STORAGE);if(k)setSavedKeys({...EMPTY_KEYS,...JSON.parse(k)});if(h)setHistory(JSON.parse(h));if(s)setSettings({...DEFAULT_SETTINGS,...JSON.parse(s)});if(a)setActiveKeys(JSON.parse(a));}catch{setNotice("Could not load saved browser data.");}setHydrated(true);},[]);
  useEffect(()=>{if(hydrated)localStorage.setItem(KEY_STORAGE,JSON.stringify(savedKeys));},[hydrated,savedKeys]);
  useEffect(()=>{if(hydrated)localStorage.setItem(HISTORY_STORAGE,JSON.stringify(history.slice(0,100)));},[hydrated,history]);
  useEffect(()=>{if(hydrated)localStorage.setItem(SETTINGS_STORAGE,JSON.stringify(settings));},[hydrated,settings]);
+ useEffect(()=>{if(hydrated)localStorage.setItem(ACTIVE_KEYS_STORAGE,JSON.stringify(activeKeys));},[hydrated,activeKeys]);
  const updateSettings=useCallback((p:Partial<GenerationSettings>)=>setSettings(s=>{const next={...s,...p};try{localStorage.setItem(SETTINGS_STORAGE,JSON.stringify(next));}catch{}return next;}),[]);
  const updateImage=useCallback((id:string,p:Partial<ImageItem>)=>setImages(xs=>xs.map(x=>x.id===id?{...x,...p}:x)),[]);
  const addFiles=useCallback((files:File[])=>{const valid=files.filter(f=>f.type.startsWith("image/"));const added=valid.slice(0,Math.max(0,100-images.length)).map(file=>({id:crypto.randomUUID(),file,previewUrl:URL.createObjectURL(file),status:"pending" as const}));setImages(xs=>[...xs,...added]);setNotice(added.length?"":"Choose image files (PNG, JPG, WEBP), up to 100.");},[images.length]);
@@ -67,7 +68,7 @@ export default function HomePage(){
   if(!pending.length){setNotice("নতুন ছবি যোগ করুন অথবা failed ছবিগুলো আবার চেষ্টা করুন।");return;}
   const providerKeys=savedKeys[settings.provider]||[];
   if(!providerKeys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
-  const activeIndex=activeKeys[settings.provider]??(providerKeys.length-1);
+  const activeIndex=activeKeys[settings.provider]??0;
   const orderedKeys=providerKeys.map((key,index)=>({key,index})).filter(x=>x.key);
   const startAt=Math.max(0,orderedKeys.findIndex(x=>x.index===activeIndex));
   const rotatedKeys=[...orderedKeys.slice(startAt),...orderedKeys.slice(0,startAt)];
@@ -164,5 +165,5 @@ export default function HomePage(){
  </section>
 </div>
  </>}</div></div></main>
- <ApiKeyModal open={keysOpen} settings={settings} onChange={updateSettings} savedKeys={savedKeys} addKey={addKey} removeKey={removeKey} setActiveKey={(p,i)=>setActiveKeys(a=>({...a,[p]:i}))} close={()=>setKeysOpen(false)}/></div>;
+ <ApiKeyModal open={keysOpen} settings={settings} onChange={updateSettings} savedKeys={savedKeys} addKey={addKey} removeKey={removeKey} activeKeys={activeKeys} setActiveKey={(p,i)=>setActiveKeys(a=>({...a,[p]:i}))} close={()=>setKeysOpen(false)}/></div>;
 }
