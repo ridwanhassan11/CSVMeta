@@ -15,6 +15,7 @@ interface Props {
   settings: GenerationSettings;
   onChange: (patch: Partial<GenerationSettings>) => void;
   savedKeys: Record<Provider, string[]>;
+  activeKeys: Partial<Record<Provider, number>>;
   addKey: (provider: Provider, key: string) => void;
   removeKey: (provider: Provider, index: number) => void;
   setActiveKey: (provider: Provider, index: number) => void;
@@ -122,6 +123,7 @@ export default function ApiKeyModal({
   settings,
   onChange,
   savedKeys,
+  activeKeys,
   addKey,
   removeKey,
   setActiveKey,
@@ -309,7 +311,7 @@ export default function ApiKeyModal({
               <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
                 {keys.map((key, index) => {
                   const isRevealed = revealed[`${activeTab}-${index}`];
-                  const isActive = index === 0;
+                  const isActive = index === (activeKeys[activeTab] ?? 0);
                   return (
                     <div
                       key={index}
