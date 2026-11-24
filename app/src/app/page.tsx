@@ -65,38 +65,55 @@ export default function HomePage(){
   if(generationLock.current)return;
   const pending=images.filter(x=>x.status==="pending"||x.status==="error");
   if(!pending.length){setNotice("নতুন ছবি যোগ করুন অথবা failed ছবিগুলো আবার চেষ্টা করুন।");return;}
-  const apiKey=getKey(settings.provider);
-  if(!apiKey){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
+  const providerKeys=savedKeys[settings.provider]||[];
+  if(!providerKeys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
+  const activeIndex=activeKeys[settings.provider]??(providerKeys.length-1);
+  const orderedKeys=providerKeys.map((key,index)=>({key,index})).filter(x=>x.key);
+  const startAt=Math.max(0,orderedKeys.findIndex(x=>x.index===activeIndex));
+  const rotatedKeys=[...orderedKeys.slice(startAt),...orderedKeys.slice(0,startAt)];
   generationLock.current=true;stopRequested.current=false;setBusy(true);
   let completed=images.filter(x=>x.status==="done").length;
-  let failed=0;let stopped=false;let quotaStopped=false;
+  let failed=0;let stopped=false;let allKeysLimited=false;
   try{
-   // Exactly one API request per image. Do not rotate keys or repeat failed requests.
    for(let index=0;index<pending.length;index++){
     const item=pending[index];
-    setNotice(`ছবি ${index+1}/${pending.length}: ${item.file.name} · একবারই চেষ্টা করা হচ্ছে`);
-    const succeeded=await generateOne(item,apiKey);
-    if(succeeded)completed++;
-    else{
+    let succeeded=false;let lastError="";
+    for(let keyIndex=0;keyIndex<rotatedKeys.length;keyIndex++){
+     if(stopRequested.current){stopped=true;break;}
+     const candidate=rotatedKeys[keyIndex];
+     setNotice(`ছবি ${index+1}/${pending.length} · API Key ${keyIndex+1}/${rotatedKeys.length} দিয়ে চেষ্টা হচ্ছে: ${item.file.name}`);
+     succeeded=await generateOne(item,candidate.key);
+     if(succeeded){
+      completed++;
+      setActiveKeys(current=>({...current,[settings.provider]:candidate.index}));
+      break;
+     }
+     lastError=lastGenerationError.current||"Generation failed.";
+     const isQuotaError=/429|quota|resource[_ ]?exhausted|rate.?limit|too many requests/i.test(lastError);
+     if(isQuotaError && keyIndex===rotatedKeys.length-1)allKeysLimited=true;
+     if(keyIndex<rotatedKeys.length-1)await new Promise(resolve=>setTimeout(resolve,1200));
+    }
+    if(stopped)break;
+    if(!succeeded){
      failed++;
-     const failure=lastGenerationError.current||"Generation failed.";
-     if(/429|quota|resource[_ ]?exhausted|rate.?limit|too many requests/i.test(failure)){
-      quotaStopped=true;
-      setNotice(`API quota/rate limit পাওয়া গেছে। আর request পাঠানো বন্ধ করা হয়েছে। ${item.file.name}: ${failure}`);
+     if(allKeysLimited){
+      setNotice("সব সংরক্ষিত API key-তে quota/rate limit পাওয়া গেছে। বাকি ছবিগুলো আপাতত queue-তে রাখা হয়েছে।");
       break;
      }
     }
-    if(stopRequested.current){stopped=true;setNotice("আপনার অনুরোধে generation বন্ধ করা হয়েছে। বাকি ছবিগুলো queue-তে রাখা হয়েছে।");break;}
+    if(stopRequested.current){stopped=true;break;}
     if(index<pending.length-1)await new Promise(resolve=>setTimeout(resolve,1200));
    }
   }finally{
    generationLock.current=false;stopRequested.current=false;setBusy(false);
-   if(!stopped&&!quotaStopped){
+   if(stopped){
+    setNotice("আপনার অনুরোধে generation বন্ধ করা হয়েছে। বাকি ছবিগুলো queue-তে রাখা হয়েছে।");
+   }else if(allKeysLimited){
+    setNotice(`সব API key-এর quota/rate limit শেষ। সফল: ${completed}টি। ব্যর্থ: ${failed}টি। quota reset হলে আবার চেষ্টা করুন।`);
+   }else{
     setNotice(failed
-      ?`Generation শেষ। সফল: ${completed}টি। ব্যর্থ: ${failed}টি। ব্যর্থ ছবিগুলো চাইলে পরে আবার চেষ্টা করতে পারবেন।`
+      ?`Generation শেষ। সফল: ${completed}টি। ব্যর্থ: ${failed}টি। সব saved API key চেষ্টা করা হয়েছে।`
       :`সব ছবি সফলভাবে তৈরি সম্পন্ন। মোট সফল: ${completed}টি।`);
-   }else if(quotaStopped){
-    setNotice(`Quota/rate limit-এর কারণে থেমেছে। সফল: ${completed}টি। ব্যর্থ: ${failed}টি। বাকি ছবিগুলো queue-তে আছে; quota reset হলে আবার চালাতে পারবেন।`);
    }
   }
  };
