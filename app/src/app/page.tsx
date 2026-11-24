@@ -82,6 +82,7 @@ export default function HomePage(){
     for(let keyIndex=0;keyIndex<rotatedKeys.length;keyIndex++){
      if(stopRequested.current){stopped=true;break;}
      const candidate=rotatedKeys[keyIndex];
+     setActiveKeys(current=>({...current,[settings.provider]:candidate.index}));
      setNotice(`ছবি ${index+1}/${pending.length} · API Key ${keyIndex+1}/${rotatedKeys.length} দিয়ে চেষ্টা হচ্ছে: ${item.file.name}`);
      succeeded=await generateOne(item,candidate.key);
      if(succeeded){
