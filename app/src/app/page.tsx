@@ -68,9 +68,9 @@ export default function HomePage(){
   if(!pending.length){setNotice("নতুন ছবি যোগ করুন অথবা failed ছবিগুলো আবার চেষ্টা করুন।");return;}
   const providerKeys=savedKeys[settings.provider]||[];
   if(!providerKeys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
-  const orderedKeys=providerKeys.map((key,index)=>({key,index})).filter(x=>x.key);
-  let startAt=Math.max(0,orderedKeys.findIndex(x=>x.index===(activeKeys[settings.provider]??0)));
-  const rotatedKeys=[...orderedKeys.slice(startAt),...orderedKeys.slice(0,startAt)];
+  const keys=providerKeys.map((key,index)=>({key,index})).filter(x=>x.key);
+  if(!keys.length){setKeysOpen(true);setNotice("এই Provider-এর অন্তত একটি API key যোগ করুন।");return;}
+  let startPosition=Math.max(0,keys.findIndex(x=>x.index===(activeKeys[settings.provider]??0)));
   generationLock.current=true;stopRequested.current=false;setBusy(true);
   let completed=images.filter(x=>x.status==="done").length;
   let failed=0;let stopped=false;let permanentFailure="";
@@ -78,46 +78,40 @@ export default function HomePage(){
    for(let index=0;index<pending.length;index++){
     const item=pending[index];
     let succeeded=false;let attempt=0;
-    while(!succeeded&&!stopRequested.current){
+    while(!succeeded&&!stopRequested.current&&!permanentFailure){
      attempt++;
-     let triedKey=false;let transientFailure=false;let lastError="";
-     for(let keyIndex=0;keyIndex<rotatedKeys.length;keyIndex++){
+     let lastError="";
+     for(let offset=0;offset<keys.length;offset++){
       if(stopRequested.current)break;
-      const candidate=rotatedKeys[(keyIndex+startAt)%rotatedKeys.length];
+      const keyPosition=(startPosition+offset)%keys.length;
+      const candidate=keys[keyPosition];
       setActiveKeys(current=>({...current,[settings.provider]:candidate.index}));
-      setNotice(`ছবি ${index+1}/${pending.length} · চেষ্টা ${attempt} · API Key ${candidate.index+1} · ${item.file.name}`);
-      triedKey=true;
+      setNotice(`ছবি ${index+1}/${pending.length} · Retry ${attempt} · API Key ${candidate.index+1}/${keys.length}: ${item.file.name}`);
       succeeded=await generateOne(item,candidate.key);
-      if(succeeded){completed++;setActiveKeys(current=>({...current,[settings.provider]:candidate.index}));break;}
+      if(succeeded){completed++;startPosition=keyPosition;break;}
       lastError=lastGenerationError.current||"Generation failed.";
       const statusMatch=lastError.match(/HTTP_(\d{3})/);
       const status=statusMatch?Number(statusMatch[1]):0;
-      const quota=/429|quota|resource[_ ]?exhausted|rate.?limit|too many requests/i.test(lastError);
-      const retryable=quota||status===408||status===425||status===429||status>=500||/failed to fetch|network|timeout|temporarily unavailable|overloaded/i.test(lastError);
-      if(retryable)transientFailure=true;
-      // Try every saved key once in the current cycle. Stop on clearly permanent input/model errors.
-      if(!retryable && (status===400||status===404||status===413)){
-       permanentFailure=lastError;break;
-      }
+      const retryable=status===408||status===425||status===429||status>=500||
+       /429|quota|resource[_ ]?exhausted|rate.?limit|too many requests|failed to fetch|network|timeout|temporarily unavailable|overloaded/i.test(lastError);
+      if(!retryable){permanentFailure=lastError;break;}
      }
      if(succeeded||stopRequested.current||permanentFailure)break;
-     if(!triedKey)break;
-     // Rotate the starting key for the next retry cycle; back off to avoid hammering the provider.
-     startAt=(startAt+1)%rotatedKeys.length;
-     const delay=Math.min(30000,5000*Math.pow(2,Math.min(attempt-1,3)));
-     const reason=transientFailure?"temporary error or quota/rate limit":"all saved keys rejected the request";
-     setNotice(`ছবি ${index+1}/${pending.length} ব্যর্থ হয়নি—${reason}। ${Math.ceil(delay/1000)} সেকেন্ড পর সব Key ঘুরিয়ে আবার চেষ্টা হবে। Stop চাপলে বন্ধ হবে।`);
-     await new Promise(resolve=>setTimeout(resolve,delay));
+     // All keys were tried: wait, rotate the first key, and retry the API request.
+     startPosition=(startPosition+1)%keys.length;
+     const waitMs=Math.min(60000,5000*Math.pow(2,Math.min(attempt-1,4)));
+     setNotice(`ছবি ${index+1}/${pending.length} তৈরি হয়নি। ${Math.ceil(waitMs/1000)} সেকেন্ড অপেক্ষা করে আবার API request পাঠানো হবে। Stop চাপলে বন্ধ হবে। Error: ${lastError.slice(0,140)}`);
+     await new Promise(resolve=>setTimeout(resolve,waitMs));
     }
     if(stopRequested.current){stopped=true;break;}
-    if(permanentFailure){failed++;setNotice(`স্থায়ী error: ${permanentFailure}`);break;}
+    if(permanentFailure){failed++;break;}
     if(!succeeded){failed++;break;}
     if(index<pending.length-1)await new Promise(resolve=>setTimeout(resolve,1200));
    }
   }finally{
    generationLock.current=false;stopRequested.current=false;setBusy(false);
    if(stopped)setNotice(`আপনার অনুরোধে বন্ধ করা হয়েছে। সফল: ${completed}টি। বাকি ছবিগুলো queue-তে আছে।`);
-   else if(permanentFailure)setNotice(`Generation স্থায়ী error-এ থেমেছে। সফল: ${completed}টি। Error: ${permanentFailure}`);
+   else if(permanentFailure)setNotice(`স্থায়ী error-এর কারণে থেমেছে। সফল: ${completed}টি। Error: ${permanentFailure}`);
    else if(failed)setNotice(`Generation থেমেছে। সফল: ${completed}টি, ব্যর্থ: ${failed}টি।`);
    else setNotice(`সব ছবি সফলভাবে তৈরি সম্পন্ন। মোট সফল: ${completed}টি।`);
   }
