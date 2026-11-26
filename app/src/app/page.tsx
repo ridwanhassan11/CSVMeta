@@ -5,7 +5,6 @@ import Sidebar, { type NavItem } from "@/components/Sidebar";
 import ControlsPanel from "@/components/ControlsPanel";
 import ApiKeyModal from "@/components/ApiKeyModal";
 import PreviewGrid from "@/components/PreviewGrid";
-import ResultCard from "@/components/ResultCard";
 import { downloadPlatformCsv } from "@/lib/csv";
 import {
   getAssetType,
@@ -684,11 +683,6 @@ export default function HomePage() {
     }
   };
 
-  const selected = useMemo(
-    () => images.find((x) => x.id === selectedId) || images.find((x) => x.status === "done") || null,
-    [images, selectedId]
-  );
-
   const doneCount = useMemo(() => images.filter((x) => x.status === "done").length, [images]);
   const failedCount = useMemo(() => images.filter((x) => x.status === "error").length, [images]);
   const exportableCount = useMemo(
@@ -892,17 +886,14 @@ export default function HomePage() {
                   </div>
                 </div>
                 {images.length > 0 ? (
-                  <>
-                    <PreviewGrid
-                      images={images}
-                      selectedId={selectedId}
-                      onSelect={setSelectedId}
-                      onRemove={removeImage}
-                      onUpdate={updateImage}
-                      notice={notice}
-                    />
-                    <ResultCard image={selected} onUpdate={updateImage} />
-                  </>
+                  <PreviewGrid
+                    images={images}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                    onRemove={removeImage}
+                    onUpdate={updateImage}
+                    notice={notice}
+                  />
                 ) : (
                   <p className="py-12 text-center text-sm text-slate-500">
                     এখনো কোনো ছবি আপলোড করা হয়নি। Generate ট্যাব থেকে ছবি আপলোড করুন।
@@ -1032,7 +1023,6 @@ export default function HomePage() {
                       onUpdate={updateImage}
                       notice={notice}
                     />
-                    {images.length > 0 && <ResultCard image={selected} onUpdate={updateImage} />}
                   </div>
                 </div>
 
