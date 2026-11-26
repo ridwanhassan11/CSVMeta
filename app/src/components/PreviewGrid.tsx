@@ -37,6 +37,7 @@ export default function PreviewGrid({
   const [addingId, setAddingId] = useState<string | null>(null);
   const [newTag, setNewTag] = useState("");
   const [filter, setFilter] = useState<"all" | ImageStatus>("all");
+  const [liveSort, setLiveSort] = useState(true);
   const [query, setQuery] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState<Record<string, { w: number; h: number }>>({});
@@ -55,9 +56,21 @@ export default function PreviewGrid({
     return { total: images.length, done, pending, loading, error };
   }, [images]);
 
+  const latestDoneId = useMemo(() => {
+    let bestId: string | null = null;
+    let bestOrder = -1;
+    for (const img of images) {
+      if (img.status === "done" && (img.liveOrder ?? 0) > bestOrder) {
+        bestOrder = img.liveOrder ?? 0;
+        bestId = img.id;
+      }
+    }
+    return bestId;
+  }, [images]);
+
   const visibleRows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return images
+    const list = images
       .map((img, index) => ({ img, index }))
       .filter(({ img }) => {
         if (filter !== "all" && img.status !== filter) return false;
@@ -70,7 +83,20 @@ export default function PreviewGrid({
           (img.keywords || []).some((k) => k.toLowerCase().includes(q))
         );
       });
-  }, [images, filter, query]);
+
+    if (!liveSort) return list;
+
+    const priority = (status: ImageStatus) =>
+      status === "loading" ? 3 : status === "done" ? 2 : status === "error" ? 1 : 0;
+
+    return list.sort((a, b) => {
+      const rankDiff = priority(b.img.status) - priority(a.img.status);
+      if (rankDiff !== 0) return rankDiff;
+      if (a.img.status === "pending") return a.index - b.index;
+      const orderDiff = (b.img.liveOrder ?? 0) - (a.img.liveOrder ?? 0);
+      return orderDiff !== 0 ? orderDiff : a.index - b.index;
+    });
+  }, [images, filter, query, liveSort]);
 
   if (images.length === 0) return null;
 
@@ -119,13 +145,37 @@ export default function PreviewGrid({
             ))}
           </div>
 
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search filename, title, or tag..."
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-indigo-500 sm:w-60 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
-          />
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setLiveSort((v) => !v)}
+              title="Keep currently generating and latest completed images pinned to the top"
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition ${
+                liveSort
+                  ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  counts.loading > 0
+                    ? "animate-pulse bg-emerald-500"
+                    : liveSort
+                      ? "bg-indigo-500"
+                      : "bg-slate-400"
+                }`}
+              />
+              {liveSort ? "Live Top" : "Original #"}
+            </button>
+
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search filename, title, or tag..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-indigo-500 sm:w-56 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            />
+          </div>
         </div>
 
         <div className="mt-3 flex items-center gap-3">
@@ -154,16 +204,34 @@ export default function PreviewGrid({
           <tbody>
             {visibleRows.map(({ img, index }) => {
               const dim = dimensions[img.id];
+              const isGenerating = img.status === "loading";
+              const isLatestDone = liveSort && img.id === latestDoneId;
               return (
                 <tr
                   key={img.id}
                   onClick={() => onSelect(img.id)}
                   className={`group cursor-pointer border-t border-slate-100 align-top transition hover:bg-slate-50/80 dark:border-zinc-800/80 dark:hover:bg-zinc-800/40 ${
-                    selectedId === img.id ? "bg-indigo-50/40 dark:bg-indigo-950/15" : ""
+                    isGenerating
+                      ? "bg-amber-50/50 dark:bg-amber-950/15"
+                      : isLatestDone
+                        ? "bg-indigo-50/45 dark:bg-indigo-950/20"
+                        : selectedId === img.id
+                          ? "bg-indigo-50/40 dark:bg-indigo-950/15"
+                          : ""
                   }`}
                 >
                   <td className="px-3.5 py-3.5 text-xs font-bold text-slate-400 dark:text-zinc-500">
-                    {index + 1}
+                    <div>{index + 1}</div>
+                    {isGenerating && (
+                      <span className="mt-1 inline-block rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold uppercase text-amber-700 dark:bg-amber-950/70 dark:text-amber-300">
+                        Live
+                      </span>
+                    )}
+                    {!isGenerating && isLatestDone && (
+                      <span className="mt-1 inline-block rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold uppercase text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
+                        New
+                      </span>
+                    )}
                   </td>
 
                   <td className="px-3.5 py-3">

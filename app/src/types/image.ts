@@ -12,4 +12,5 @@ export type ImageItem = {
   prompt?: string;
   keywords?: string[];
   error?: string;
+  liveOrder?: number;
 };

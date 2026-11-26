@@ -74,6 +74,7 @@ export default function HomePage() {
   const uploadLock = useRef(false);
   const stopRequested = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const liveOrderSeq = useRef(0);
 
   const [images, setImages] = useState<ImageItem[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{
@@ -149,8 +150,13 @@ export default function HomePage() {
   );
 
   const updateImage = useCallback(
-    (id: string, patch: Partial<ImageItem>) =>
-      setImages((xs) => xs.map((x) => (x.id === id ? { ...x, ...patch } : x))),
+    (id: string, patch: Partial<ImageItem>) => {
+      const nextPatch =
+        patch.status === "loading" || patch.status === "done" || patch.status === "error"
+          ? { ...patch, liveOrder: ++liveOrderSeq.current }
+          : patch;
+      setImages((xs) => xs.map((x) => (x.id === id ? { ...x, ...nextPatch } : x)));
+    },
     []
   );
 
