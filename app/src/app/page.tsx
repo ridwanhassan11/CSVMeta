@@ -633,7 +633,7 @@ export default function HomePage() {
     PLATFORMS.find((p) => p.id === settings.platform)?.label || "General";
 
   return (
-    <div className="min-h-screen bg-[#f8f6ff] text-slate-950 dark:bg-slate-950 dark:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100">
       <Sidebar
         active={activeTab}
         onNavigate={setActiveTab}
@@ -643,22 +643,24 @@ export default function HomePage() {
         historyCount={history.length}
       />
 
-      <main className="min-h-screen md:ml-[210px]">
+      <main className="min-h-screen md:ml-[220px]">
         <div className="mx-auto max-w-[1600px]">
-          <header className="sticky top-0 z-20 flex h-[50px] items-center justify-between border-b border-[#eee8f8] bg-[#fbfaff]/95 px-5 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-            <h1 className="text-[17px] font-extrabold">
-              <span className="mr-2 text-violet-700">✦</span>
+          <header className="sticky top-0 z-20 flex h-[52px] items-center justify-between border-b border-slate-200/80 bg-white/85 px-5 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/85">
+            <h1 className="text-[16px] font-bold tracking-tight">
+              <span className="mr-2 text-indigo-600 dark:text-indigo-400">◈</span>
               {activeTab === "Generate" ? "Generate Metadata" : activeTab}
             </h1>
 
-            <div className="flex items-center gap-2 md:hidden">
+            <div className="flex items-center gap-1.5 md:hidden">
               {(["Generate", "Metadata", "History", "Settings"] as NavItem[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`rounded-lg px-2 py-1 text-xs font-semibold ${
-                    activeTab === tab ? "bg-violet-700 text-white" : "text-slate-600 dark:text-slate-300"
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                    activeTab === tab
+                      ? "bg-slate-900 text-white dark:bg-indigo-600"
+                      : "text-slate-600 dark:text-zinc-300"
                   }`}
                 >
                   {tab}
@@ -666,13 +668,13 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div className="flex items-center gap-3 text-lg text-slate-700 dark:text-slate-300">
+            <div className="flex items-center gap-2 text-base text-slate-600 dark:text-zinc-300">
               <button
                 type="button"
                 onClick={() => setHelpOpen(true)}
                 aria-label="Help"
                 title="Help & Guide"
-                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-violet-100 dark:hover:bg-slate-800"
+                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800"
               >
                 ⓘ
               </button>
@@ -681,11 +683,11 @@ export default function HomePage() {
                 onClick={() => setLogsOpen(true)}
                 aria-label="Notifications"
                 title="Activity & Error Logs"
-                className="relative flex h-8 w-8 items-center justify-center rounded-full hover:bg-violet-100 dark:hover:bg-slate-800"
+                className="relative flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800"
               >
                 ♧
                 {activityLogs.length > 0 && (
-                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-violet-600" />
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-indigo-600" />
                 )}
               </button>
               <button
@@ -693,16 +695,16 @@ export default function HomePage() {
                 onClick={() => setKeysOpen(true)}
                 aria-label="API Keys"
                 title="API Keys & Models"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-sm text-white hover:bg-violet-700"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs text-white hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500"
               >
                 ⚙
               </button>
             </div>
           </header>
 
-          <div className="px-3 py-3 md:px-4">
+          <div className="px-4 py-4">
             {activeTab === "History" ? (
-              <section className="rounded-2xl border border-violet-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-lg font-bold">Generation History ({history.length})</h2>
                   {history.length > 0 && (
@@ -717,9 +719,9 @@ export default function HomePage() {
                 </div>
                 {history.length ? (
                   history.map((h) => (
-                    <article key={h.id + h.createdAt} className="border-b border-slate-100 py-3 dark:border-slate-800">
+                    <article key={h.id + h.createdAt} className="border-b border-slate-100 py-3 dark:border-zinc-800">
                       <b className="text-sm">{h.fileName}</b>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{h.title || h.prompt}</p>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">{h.title || h.prompt}</p>
                       <small className="text-xs text-slate-400">{new Date(h.createdAt).toLocaleString()}</small>
                     </article>
                   ))
@@ -728,9 +730,9 @@ export default function HomePage() {
                 )}
               </section>
             ) : activeTab === "Templates" ? (
-              <section className="rounded-2xl border border-violet-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-                <h2 className="mb-3 text-lg font-bold">Style &amp; Prompt Templates</h2>
-                <p className="mb-4 text-sm text-slate-500">
+              <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+                <h2 className="mb-2 text-lg font-bold">Style &amp; Prompt Templates</h2>
+                <p className="mb-4 text-sm text-slate-500 dark:text-zinc-400">
                   যেকোনো টেমপ্লেটে ক্লিক করলে সেটি আপনার Extra Instructions হিসেবে সেট হয়ে যাবে।
                 </p>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -749,7 +751,7 @@ export default function HomePage() {
                         setActiveTab("Generate");
                         pushLog("টেমপ্লেট সেট করা হয়েছে।");
                       }}
-                      className="rounded-xl border border-slate-200 p-4 text-left text-sm hover:border-violet-500 hover:bg-violet-50/50 dark:border-slate-700 dark:hover:bg-slate-800"
+                      className="rounded-xl border border-slate-200 p-4 text-left text-sm transition hover:border-indigo-500 hover:bg-indigo-50/40 dark:border-zinc-800 dark:hover:bg-zinc-800"
                     >
                       {t}
                     </button>
@@ -757,16 +759,16 @@ export default function HomePage() {
                 </div>
               </section>
             ) : activeTab === "Settings" ? (
-              <section className="space-y-4 rounded-2xl border border-violet-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <section className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-lg font-bold">Settings</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm text-slate-500 dark:text-zinc-400">
                   সব API key ও সেটিংস শুধু আপনার ব্রাউজারে সেভ থাকে। একাধিক API key যোগ করলে রেট-লিমিটে আটকালে স্বয়ংক্রিয়ভাবে পরের key-তে সুইচ করবে।
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => setKeysOpen(true)}
-                    className="rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800"
+                    className="rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
                   >
                     Manage API Keys &amp; Models
                   </button>
@@ -776,18 +778,18 @@ export default function HomePage() {
                       setSettings(DEFAULT_SETTINGS);
                       pushLog("সেটিংস ডিফল্টে রিসেট করা হয়েছে।");
                     }}
-                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold dark:border-slate-700"
+                    className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold dark:border-zinc-700"
                   >
                     Reset Generation Settings
                   </button>
                 </div>
               </section>
             ) : activeTab === "Metadata" ? (
-              <section className="rounded-2xl border border-violet-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold">Generated Metadata ({doneCount} / {images.length})</h2>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">
                       Target Export Platform: <b>{activePlatformLabel}</b>
                     </p>
                   </div>
@@ -795,7 +797,7 @@ export default function HomePage() {
                     <button
                       type="button"
                       onClick={() => setActiveTab("Generate")}
-                      className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700"
+                      className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-zinc-700"
                     >
                       + Add / Generate More
                     </button>
@@ -803,7 +805,7 @@ export default function HomePage() {
                       type="button"
                       onClick={() => downloadPlatformCsv(images, settings.platform)}
                       disabled={!exportableCount}
-                      className="rounded-xl bg-violet-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
+                      className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-40"
                     >
                       ↓ Export {activePlatformLabel} CSV ({exportableCount})
                     </button>
@@ -828,14 +830,14 @@ export default function HomePage() {
                 )}
               </section>
             ) : (
-              <div className="grid items-start gap-3 min-[900px]:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)_minmax(0,0.95fr)]">
+              <div className="grid items-start gap-4 min-[900px]:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)_minmax(0,0.95fr)]">
                 <div className="min-w-0 flex flex-col gap-3 min-[900px]:col-span-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#e8e1f6] bg-white px-4 py-2.5 shadow-[0_2px_8px_rgba(91,33,182,.04)] dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="rounded-full bg-violet-100 px-2.5 py-1 font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-300">
+                      <span className="rounded-full bg-indigo-50 px-2.5 py-1 font-semibold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
                         {PROVIDER_LABELS[settings.provider]} · {getCurrentModelLabel(settings)}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-300">
                         Export: {activePlatformLabel}
                       </span>
                     </div>
@@ -855,26 +857,26 @@ export default function HomePage() {
                     </button>
                   </div>
 
-                  <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-2.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
+                  <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       onDragOver={(e) => {
                         e.preventDefault();
-                        e.currentTarget.classList.add("border-violet-600", "bg-violet-50/80");
+                        e.currentTarget.classList.add("border-indigo-500", "bg-indigo-50/70");
                       }}
                       onDragLeave={(e) => {
-                        e.currentTarget.classList.remove("border-violet-600", "bg-violet-50/80");
+                        e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
                       }}
                       onDrop={(e) => {
                         e.preventDefault();
-                        e.currentTarget.classList.remove("border-violet-600", "bg-violet-50/80");
+                        e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
                         const dropped = Array.from(e.dataTransfer.files).filter((file) =>
                           file.type.startsWith("image/")
                         );
                         if (dropped.length) addFiles(dropped);
                       }}
-                      className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800 ${
+                      className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 transition hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-zinc-700 dark:bg-zinc-950/50 dark:hover:border-indigo-500 ${
                         images.length > 0
                           ? "h-[82px] flex-row justify-between px-5 text-left"
                           : "h-[240px] flex-col text-center"
@@ -884,34 +886,34 @@ export default function HomePage() {
                       {images.length > 0 ? (
                         <>
                           <div className="flex items-center gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-lg text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
                               ⇧
                             </span>
                             <div>
                               <p className="text-sm font-bold text-slate-800 dark:text-white">
                                 Add more images ({images.length} loaded)
                               </p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                              <p className="text-xs text-slate-500 dark:text-zinc-400">
                                 Drag &amp; drop or click to append PNG, JPG, WEBP
                               </p>
                             </div>
                           </div>
-                          <span className="shrink-0 rounded-lg bg-violet-700 px-4 py-2 text-xs font-semibold text-white shadow-sm">
+                          <span className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm dark:bg-indigo-600">
                             + Add Images
                           </span>
                         </>
                       ) : (
                         <>
-                          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-2xl text-violet-700 transition group-hover:scale-105 dark:bg-violet-950 dark:text-violet-300">
+                          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600 transition group-hover:scale-105 dark:bg-indigo-950/60 dark:text-indigo-300">
                             ⇧
                           </span>
                           <span className="text-base font-bold text-slate-800 dark:text-white">
                             Upload your images
                           </span>
-                          <span className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                          <span className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
                             Drag &amp; drop images here, or click to browse
                           </span>
-                          <span className="mt-3 rounded-lg bg-violet-700 px-5 py-2 text-sm font-semibold text-white shadow-sm">
+                          <span className="mt-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm">
                             Choose Images
                           </span>
                           <span className="mt-2 text-xs text-slate-400">
@@ -937,7 +939,7 @@ export default function HomePage() {
                   {notice && (
                     <div
                       role="status"
-                      className="rounded-xl border border-violet-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                      className="rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-xs font-medium text-slate-700 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
                     >
                       {notice}
                     </div>
@@ -956,14 +958,16 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-3.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] min-[900px]:sticky min-[900px]:top-[58px] min-[900px]:self-start dark:border-slate-800 dark:bg-slate-900">
+                <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs min-[900px]:sticky min-[900px]:top-[62px] min-[900px]:self-start dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="mb-3 flex items-center justify-between">
-                    <h2 className="font-bold text-slate-900 dark:text-white">⚙ Generation Settings</h2>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                      Generation Settings
+                    </h2>
                     <button
                       type="button"
                       onClick={() => setSettings(DEFAULT_SETTINGS)}
                       disabled={busy}
-                      className="text-xs font-semibold text-violet-700 disabled:opacity-40"
+                      className="text-xs font-semibold text-indigo-600 hover:underline disabled:opacity-40 dark:text-indigo-400"
                     >
                       ↻ Reset
                     </button>
@@ -980,7 +984,7 @@ export default function HomePage() {
                     type="button"
                     onClick={generateAll}
                     disabled={!images.length || busy}
-                    className="mt-4 w-full rounded-xl bg-violet-700 px-6 py-3 font-bold text-white shadow-md shadow-violet-700/20 hover:bg-violet-800 disabled:opacity-40"
+                    className="mt-4 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition hover:opacity-95 disabled:opacity-40"
                   >
                     {busy
                       ? "Generating…"
@@ -999,7 +1003,7 @@ export default function HomePage() {
                       }
                     }}
                     disabled={!busy}
-                    className="mt-2.5 w-full rounded-xl border border-rose-300 bg-white px-6 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-rose-900 dark:bg-slate-900 dark:hover:bg-rose-950/30"
+                    className="mt-2 w-full rounded-xl border border-rose-200 bg-white px-6 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-rose-900 dark:bg-zinc-900 dark:hover:bg-rose-950/30"
                   >
                     ■ Stop Generating
                   </button>
@@ -1014,7 +1018,7 @@ export default function HomePage() {
                         setNotice("");
                       }}
                       disabled={!images.length || busy}
-                      className="flex-1 rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-medium disabled:opacity-40 dark:border-slate-700"
+                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                     >
                       Clear All
                     </button>
@@ -1022,7 +1026,7 @@ export default function HomePage() {
                       type="button"
                       onClick={() => downloadPlatformCsv(images, settings.platform)}
                       disabled={!exportableCount}
-                      className="flex-1 rounded-xl bg-violet-700 px-3 py-2.5 text-sm font-bold text-white hover:bg-violet-800 disabled:opacity-40"
+                      className="flex-1 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-40"
                     >
                       ↓ Export CSV ({exportableCount})
                     </button>
@@ -1048,9 +1052,9 @@ export default function HomePage() {
 
       {helpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900">
             <h2 className="text-lg font-bold">CSVMeta ব্যবহার গাইড</h2>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+            <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-zinc-300">
               <li>1. <b>API Keys</b> থেকে Google Gemini / Groq / OpenRouter key যোগ করুন এবং <b>Test</b> দিয়ে যাচাই করুন।</li>
               <li>2. Free Tier key-তে কয়েকটি ছবির পর থেমে গেলে <b>Request Pace = Free Tier (4s)</b> সিলেক্ট করুন অথবা একাধিক API key যোগ করুন।</li>
               <li>3. কোনো ১টি ছবি ব্যর্থ হলে পুরো ব্যাচ আর বন্ধ হবে না—সেটি স্কিপ করে বাকি সব ছবি জেনারেট হবে।</li>
@@ -1060,7 +1064,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setHelpOpen(false)}
-                className="rounded-xl bg-violet-700 px-5 py-2 text-sm font-semibold text-white"
+                className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 বুঝেছি
               </button>
@@ -1071,7 +1075,7 @@ export default function HomePage() {
 
       {logsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Activity &amp; Status Logs</h2>
               {activityLogs.length > 0 && (
@@ -1084,10 +1088,10 @@ export default function HomePage() {
                 </button>
               )}
             </div>
-            <div className="mt-3 max-h-72 space-y-1.5 overflow-y-auto text-xs text-slate-600 dark:text-slate-300">
+            <div className="mt-3 max-h-72 space-y-1.5 overflow-y-auto text-xs text-slate-600 dark:text-zinc-300">
               {activityLogs.length ? (
                 activityLogs.map((log, idx) => (
-                  <p key={idx} className="rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800">
+                  <p key={idx} className="rounded-lg bg-slate-50 px-3 py-2 dark:bg-zinc-800">
                     {log}
                   </p>
                 ))

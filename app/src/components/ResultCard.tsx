@@ -21,11 +21,11 @@ export default function ResultCard({ image, onUpdate }: Props) {
 
   if (!image) {
     return (
-      <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-[#e8e1f6] bg-white py-10 text-center transition-colors dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-lg dark:bg-slate-800">
+      <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white py-10 text-center transition-colors dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-lg dark:bg-zinc-800">
           🖼
         </div>
-        <p className="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+        <p className="mt-3 text-sm font-semibold text-slate-700 dark:text-zinc-300">
           Select any completed image to edit details here
         </p>
         <p className="mt-1 text-xs text-slate-400">
@@ -46,7 +46,7 @@ export default function ResultCard({ image, onUpdate }: Props) {
 
   if (image.status !== "done") {
     return (
-      <div className="mt-4 rounded-2xl border border-[#e8e1f6] bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <p className="font-semibold text-slate-900 dark:text-white">{image.file.name}</p>
         <p className="mt-1 text-sm text-slate-400">
           {image.status === "loading" ? "Generating metadata..." : "Waiting in queue..."}
@@ -56,10 +56,10 @@ export default function ResultCard({ image, onUpdate }: Props) {
   }
 
   const fieldClass =
-    "mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-violet-500 resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
+    "mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-indigo-500 resize-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200";
 
   return (
-    <div className="mt-4 rounded-2xl border border-[#e8e1f6] bg-white p-5 shadow-[0_2px_8px_rgba(91,33,182,.05)] transition-colors dark:border-slate-800 dark:bg-slate-900">
+    <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-colors dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <img
@@ -93,7 +93,7 @@ export default function ResultCard({ image, onUpdate }: Props) {
           <button
             type="button"
             onClick={() => copy("prompt", image.prompt || "")}
-            className="mt-3 rounded-xl bg-violet-700 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-800"
+            className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700"
           >
             {copiedField === "prompt" ? "Copied ✓" : "Copy Prompt"}
           </button>
@@ -158,7 +158,7 @@ export default function ResultCard({ image, onUpdate }: Props) {
             <button
               type="button"
               onClick={() => copy("title", image.title || "")}
-              className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
             >
               {copiedField === "title" ? "Copied ✓" : "Copy Title"}
             </button>
@@ -166,7 +166,7 @@ export default function ResultCard({ image, onUpdate }: Props) {
               <button
                 type="button"
                 onClick={() => copy("desc", image.description || "")}
-                className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
               >
                 {copiedField === "desc" ? "Copied ✓" : "Copy Description"}
               </button>
@@ -174,7 +174,7 @@ export default function ResultCard({ image, onUpdate }: Props) {
             <button
               type="button"
               onClick={() => copy("keywords", image.keywords?.join(", ") || "")}
-              className="rounded-xl bg-violet-700 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-800"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-700"
             >
               {copiedField === "keywords" ? "Copied ✓" : "Copy Keywords"}
             </button>

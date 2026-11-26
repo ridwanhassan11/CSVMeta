@@ -17,7 +17,7 @@ function Icon({ name }: { name: NavItem }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-5 w-5 shrink-0"
+      className="h-4.5 w-4.5 shrink-0"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -49,28 +49,31 @@ export default function Sidebar({
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[210px] flex-col border-r border-[#e8e1f6] bg-[#f7f4ff] px-[13px] py-5 md:flex dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-center gap-2.5 px-1">
-        <div className="flex h-11 w-11 items-center justify-center text-[34px] font-black leading-none text-violet-700">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col border-r border-slate-200/80 bg-white px-3.5 py-5 md:flex dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-center gap-3 px-1.5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-lg font-black text-white shadow-sm shadow-indigo-600/25">
           ◈
         </div>
-        <div className="text-[17px] font-extrabold leading-[19px] text-slate-950 dark:text-white">
-          CSVMeta
-          <br />
-          <span className="text-xs font-semibold text-violet-700">AI Generator</span>
+        <div>
+          <div className="text-[16px] font-bold tracking-tight text-slate-900 dark:text-white">
+            CSVMeta
+          </div>
+          <div className="text-[11px] font-medium text-slate-400 dark:text-zinc-400">
+            AI Metadata Studio
+          </div>
         </div>
       </div>
 
-      <nav className="mt-7 space-y-1.5">
+      <nav className="mt-7 space-y-1">
         {items.map((item) => (
           <button
             key={item}
             type="button"
             onClick={() => onNavigate?.(item)}
-            className={`flex w-full items-center gap-3 rounded-xl px-3 py-[10px] text-left text-[14px] font-semibold transition ${
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13.5px] font-medium transition ${
               item === active
-                ? "bg-violet-700 text-white shadow-md shadow-violet-700/20"
-                : "text-slate-800 hover:bg-violet-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                ? "bg-slate-900 text-white shadow-sm dark:bg-indigo-600 dark:text-white"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
             }`}
           >
             <Icon name={item} />
@@ -79,29 +82,29 @@ export default function Sidebar({
         ))}
       </nav>
 
-      <div className="mt-auto space-y-3">
-        <div className="rounded-xl border border-[#e6def5] bg-white/60 p-3 dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between text-xs font-bold text-violet-700 dark:text-violet-300">
+      <div className="mt-auto space-y-2.5">
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-3.5 dark:border-zinc-800 dark:bg-zinc-900/70">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-zinc-200">
             <span>Session Progress</span>
-            <span>{pct}%</span>
+            <span className="text-indigo-600 dark:text-indigo-400">{pct}%</span>
           </div>
-          <p className="mt-2 text-xs font-semibold text-slate-800 dark:text-slate-200">
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
             {doneCount} / {totalCount} completed
           </p>
-          <div className="mt-2 h-2 rounded-full bg-violet-100 dark:bg-slate-700">
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-800">
             <div
-              className="h-2 rounded-full bg-violet-700 transition-all"
+              className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-blue-500 transition-all duration-300"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-[11px] text-slate-400 dark:text-zinc-500">
             History saved: {historyCount}
           </p>
           {onOpenKeys && (
             <button
               type="button"
               onClick={onOpenKeys}
-              className="mt-2.5 w-full rounded-lg bg-violet-700 py-2 text-xs font-bold text-white hover:bg-violet-800"
+              className="mt-2.5 w-full rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-indigo-300 hover:text-indigo-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-indigo-500"
             >
               ⚙ Manage API Keys
             </button>
@@ -111,18 +114,20 @@ export default function Sidebar({
         <button
           type="button"
           onClick={toggleTheme}
-          className="flex w-full items-center justify-between rounded-xl border border-[#e6def5] bg-white/60 px-3 py-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+          className="flex w-full items-center justify-between rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
         >
-          <span>☼ {theme === "dark" ? "Dark" : "Light"} Mode</span>
-          <span className="rounded-full bg-slate-200 px-2 py-1 dark:bg-slate-700">●</span>
+          <span>{theme === "dark" ? "☾ Dark Mode" : "☀ Light Mode"}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">
+            Switch
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#e6def5] bg-white/60 px-3 py-3 text-xs text-rose-600 dark:border-slate-700 dark:bg-slate-800"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-xs font-medium text-rose-600 transition hover:border-rose-200 hover:bg-rose-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-rose-400 dark:hover:bg-rose-950/30"
         >
-          ⇥ Log out
+          Log out
         </button>
       </div>
     </aside>

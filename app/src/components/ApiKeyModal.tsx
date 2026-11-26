@@ -196,14 +196,14 @@ export default function ApiKeyModal({
                 }}
                 className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
                   activeTab === p
-                    ? "bg-[#7C5CFC]/10 text-[#7C5CFC] dark:bg-[#7C5CFC]/20 dark:text-[#B9A7FF]"
+                    ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
                     : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
               >
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                     activeTab === p
-                      ? "bg-[#7C5CFC] text-white"
+                      ? "bg-indigo-600 text-white"
                       : "bg-white text-slate-500 dark:bg-slate-800 dark:text-slate-400"
                   }`}
                 >
@@ -317,12 +317,12 @@ export default function ApiKeyModal({
                 onChange={(e) => setKeyInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAdd()}
                 placeholder={`Enter ${meta.name} API key`}
-                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-[#7C5CFC] dark:border-slate-700 dark:bg-slate-800"
+                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800"
               />
               <button
                 type="button"
                 onClick={handleAdd}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#7C5CFC] text-white transition hover:bg-[#6a4ce0]"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-700"
                 title="Add API Key"
               >
                 +
