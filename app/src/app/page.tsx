@@ -8,6 +8,12 @@ import PreviewGrid from "@/components/PreviewGrid";
 import ResultCard from "@/components/ResultCard";
 import { downloadPlatformCsv } from "@/lib/csv";
 import {
+  getAssetType,
+  isSupportedAsset,
+  prepareAssetForUpload,
+  prepareAssetPreview,
+} from "@/lib/assetPrep";
+import {
   DEFAULT_SETTINGS,
   PLATFORMS,
   PROVIDER_LABELS,
@@ -61,67 +67,6 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
     }
     signal?.addEventListener("abort", onAbort, { once: true });
   });
-}
-
-async function decodeImageElement(file: File): Promise<CanvasImageSource & { width: number; height: number }> {
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("Unsupported or corrupted image file."));
-      el.src = url;
-    });
-    return img;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
-async function prepareImageForUpload(file: File): Promise<File> {
-  let source: (CanvasImageSource & { width: number; height: number }) | null = null;
-  let bitmap: ImageBitmap | null = null;
-
-  try {
-    try {
-      bitmap = await createImageBitmap(file);
-      source = bitmap;
-    } catch {
-      source = await decodeImageElement(file);
-    }
-
-    const attemptEncode = async (maxSide: number, quality: number): Promise<Blob> => {
-      const scale = Math.min(1, maxSide / Math.max(source!.width, source!.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(source!.width * scale));
-      canvas.height = Math.max(1, Math.round(source!.height * scale));
-      const context = canvas.getContext("2d");
-      if (!context) throw new Error("Could not prepare image for upload.");
-      context.fillStyle = "#ffffff";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(source!, 0, 0, canvas.width, canvas.height);
-      return await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (value) => (value ? resolve(value) : reject(new Error("Image compression failed."))),
-          "image/jpeg",
-          quality
-        );
-      });
-    };
-
-    let blob = await attemptEncode(1280, 0.78);
-    if (blob.size > 3_500_000) {
-      blob = await attemptEncode(1024, 0.65);
-    }
-
-    const cleanName = file.name.replace(/\.(png|jpe?g|webp|avif|bmp|gif)$/i, "") + ".jpg";
-    return new File([blob], cleanName, {
-      type: "image/jpeg",
-      lastModified: Date.now(),
-    });
-  } finally {
-    bitmap?.close();
-  }
 }
 
 export default function HomePage() {
@@ -206,19 +151,36 @@ export default function HomePage() {
 
   const addFiles = useCallback(
     (files: File[]) => {
-      const valid = files.filter((f) => f.type.startsWith("image/"));
+      const valid = files.filter(isSupportedAsset);
       if (!valid.length) {
-        pushLog("শুধুমাত্র PNG, JPG, JPEG বা WEBP ছবি নির্বাচন করুন।");
+        pushLog("PNG, JPG, WEBP, SVG বা EPS ফাইল নির্বাচন করুন।");
         return;
       }
-      const added = valid.map((file) => ({
-        id: crypto.randomUUID(),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        status: "pending" as const,
-      }));
+      const added: ImageItem[] = valid.map((file) => {
+        const assetType = getAssetType(file);
+        return {
+          id: crypto.randomUUID(),
+          file,
+          assetType,
+          previewUrl: assetType === "raster" ? URL.createObjectURL(file) : "",
+          status: "pending" as const,
+        };
+      });
       setImages((xs) => [...xs, ...added]);
-      setNotice(`${added.length}টি ছবি আপলোড হয়েছে (মোট ${images.length + added.length}টি)।`);
+      setNotice(`${added.length}টি ফাইল আপলোড হয়েছে (মোট ${images.length + added.length}টি)।`);
+
+      // Generate previews asynchronously for SVG & EPS vector files
+      for (const item of added) {
+        if (item.assetType !== "raster") {
+          prepareAssetPreview(item.file)
+            .then((previewUrl) => {
+              setImages((xs) =>
+                xs.map((x) => (x.id === item.id ? { ...x, previewUrl } : x))
+              );
+            })
+            .catch(() => {});
+        }
+      }
     },
     [images.length, pushLog]
   );
@@ -252,8 +214,15 @@ export default function HomePage() {
 
       try {
         const body = new FormData();
-        const uploadFile = await prepareImageForUpload(image.file);
-        body.append("file", uploadFile, uploadFile.name);
+        const prepared = await prepareAssetForUpload(image.file);
+        if (prepared.uploadFile) {
+          body.append("file", prepared.uploadFile, prepared.uploadFile.name);
+        }
+        if (prepared.vectorContext) {
+          body.append("vectorContext", prepared.vectorContext);
+        }
+        body.append("assetType", prepared.assetType);
+        body.append("assetName", image.file.name);
         body.append("provider", settings.provider);
         body.append("geminiModel", geminiModelOverride || settings.geminiModel);
         body.append("groqModel", settings.groqModel);
@@ -871,9 +840,7 @@ export default function HomePage() {
                       onDrop={(e) => {
                         e.preventDefault();
                         e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
-                        const dropped = Array.from(e.dataTransfer.files).filter((file) =>
-                          file.type.startsWith("image/")
-                        );
+                        const dropped = Array.from(e.dataTransfer.files).filter(isSupportedAsset);
                         if (dropped.length) addFiles(dropped);
                       }}
                       className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 transition hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-zinc-700 dark:bg-zinc-950/50 dark:hover:border-indigo-500 ${
@@ -881,7 +848,7 @@ export default function HomePage() {
                           ? "h-[82px] flex-row justify-between px-5 text-left"
                           : "h-[240px] flex-col text-center"
                       }`}
-                      aria-label="Upload images"
+                      aria-label="Upload images and vectors"
                     >
                       {images.length > 0 ? (
                         <>
@@ -891,15 +858,15 @@ export default function HomePage() {
                             </span>
                             <div>
                               <p className="text-sm font-bold text-slate-800 dark:text-white">
-                                Add more images ({images.length} loaded)
+                                Add more files ({images.length} loaded)
                               </p>
                               <p className="text-xs text-slate-500 dark:text-zinc-400">
-                                Drag &amp; drop or click to append PNG, JPG, WEBP
+                                Drag &amp; drop or click to append PNG, JPG, WEBP, SVG, EPS
                               </p>
                             </div>
                           </div>
                           <span className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm dark:bg-indigo-600">
-                            + Add Images
+                            + Add Files
                           </span>
                         </>
                       ) : (
@@ -908,16 +875,16 @@ export default function HomePage() {
                             ⇧
                           </span>
                           <span className="text-base font-bold text-slate-800 dark:text-white">
-                            Upload your images
+                            Upload your images &amp; vectors
                           </span>
                           <span className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
-                            Drag &amp; drop images here, or click to browse
+                            Drag &amp; drop files here, or click to browse
                           </span>
                           <span className="mt-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm">
-                            Choose Images
+                            Choose Files
                           </span>
                           <span className="mt-2 text-xs text-slate-400">
-                            PNG, JPG, WEBP • Unlimited batch supported
+                            PNG, JPG, WEBP, SVG, EPS • Unlimited batch supported
                           </span>
                         </>
                       )}
@@ -925,7 +892,7 @@ export default function HomePage() {
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept="image/*"
+                      accept="image/*,.svg,.eps,application/postscript,application/eps,image/svg+xml"
                       multiple
                       className="sr-only"
                       onChange={(e) => {

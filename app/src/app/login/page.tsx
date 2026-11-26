@@ -15,8 +15,8 @@ const SAMPLE_TAGS = [
 
 const STEPS = [
   {
-    title: "Upload your images",
-    desc: "Drag and drop dozens or hundreds of images at once — JPG, PNG, or WEBP.",
+    title: "Upload your images & vectors",
+    desc: "Drag and drop dozens or hundreds of files at once — JPG, PNG, WEBP, SVG, or EPS.",
   },
   {
     title: "AI analyzes each photo",

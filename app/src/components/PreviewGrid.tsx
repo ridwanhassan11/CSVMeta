@@ -164,18 +164,29 @@ export default function PreviewGrid({
 
                 <td className="px-3.5 py-3">
                   <div className="relative h-24 w-48 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800">
-                    <img
-                      src={img.previewUrl}
-                      alt={img.file.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
+                    {img.previewUrl ? (
+                      <img
+                        src={img.previewUrl}
+                        alt={img.file.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-400">
+                        {(img.assetType || "IMG").toUpperCase()}
+                      </div>
+                    )}
                     <span
                       className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm ${statusStyle[img.status]}`}
                     >
                       {statusLabel[img.status]}
                     </span>
+                    {(img.assetType === "eps" || img.assetType === "svg") && (
+                      <span className="absolute bottom-1.5 left-1.5 rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
+                        {img.assetType}
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {

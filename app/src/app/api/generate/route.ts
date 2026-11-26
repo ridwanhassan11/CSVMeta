@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
+import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 
 const PLATFORM_LABELS: Record<string, string> = {
-  general: "a general stock photography platform",
+  general: "a general stock photography and vector platform",
   "adobe-stock": "Adobe Stock",
   shutterstock: "Shutterstock",
   freepik: "Freepik",
@@ -33,8 +34,13 @@ function buildMetadataPrompt(opts: {
   keywordsCount: number;
   extraInstructions: string;
   includeDescription: boolean;
+  assetType: string;
+  assetName: string;
+  vectorContext: string;
+  hasImage: boolean;
 }) {
   const platformLabel = PLATFORM_LABELS[opts.platform] || "a stock platform";
+  const isVector = opts.assetType === "eps" || opts.assetType === "svg";
 
   const jsonShape = opts.includeDescription
     ? `{
@@ -47,6 +53,14 @@ function buildMetadataPrompt(opts: {
   "keywords": []
 }`;
 
+  const vectorNote = isVector
+    ? `- This asset is a ${opts.assetType.toUpperCase()} vector graphic (${opts.assetName}). Include appropriate vector/illustration terms where natural (e.g., vector, illustration, graphic, isolated if relevant).`
+    : "";
+
+  const contextSection = opts.vectorContext
+    ? `\nAsset Context (${opts.hasImage ? "supplemental to image" : "analyze from filename & vector metadata"}):\n${opts.vectorContext}\n`
+    : "";
+
   return `Return ONLY valid JSON in this exact shape:
 ${jsonShape}
 
@@ -54,15 +68,20 @@ Rules:
 - Write a clear, descriptive, commercial stock title suited for ${platformLabel}, max ${opts.titleLength} characters.
 ${opts.includeDescription ? "- Write a factual description of around 140-180 characters." : ""}
 - Provide up to ${opts.keywordsCount} relevant keywords (comma-free individual words or short 2-word phrases), ordered from most relevant to least relevant.
+${vectorNote}
 - Do not include brand names, trademarks, camera specs, or generic filler unless directly visible.
 - Return JSON only. No markdown fences. No explanation.
-${opts.extraInstructions ? `- Additional instructions: ${opts.extraInstructions}` : ""}`;
+${opts.extraInstructions ? `- Additional instructions: ${opts.extraInstructions}` : ""}${contextSection}`;
 }
 
-function buildImagePromptPrompt(opts: { extraInstructions: string }) {
-  return `Look at this image carefully and write a highly detailed, descriptive prompt that could be used to recreate this exact image with an AI image generator (like Midjourney or DALL-E).
+function buildImagePromptPrompt(opts: {
+  extraInstructions: string;
+  assetType: string;
+  vectorContext: string;
+}) {
+  return `Look at this ${opts.assetType === "eps" || opts.assetType === "svg" ? "vector illustration" : "image"} carefully and write a highly detailed, descriptive prompt that could be used to recreate this exact artwork with an AI generator.
 
-Include details about: subject, composition, lighting, colors, mood, style, camera angle, and any other visually important details.
+Include details about: subject, composition, lighting, colors, mood, style, and any visually important details.
 
 Return ONLY valid JSON in this exact shape:
 {
@@ -72,7 +91,8 @@ Return ONLY valid JSON in this exact shape:
 Rules:
 - The prompt should be a single detailed paragraph; comma-separated descriptive phrases work well.
 - Return JSON only. No markdown fences. No explanation.
-${opts.extraInstructions ? `- Additional style guidance: ${opts.extraInstructions}` : ""}`;
+${opts.extraInstructions ? `- Additional style guidance: ${opts.extraInstructions}` : ""}
+${opts.vectorContext ? `\nContext:\n${opts.vectorContext}` : ""}`;
 }
 
 function parseRetryAfterSeconds(message: string, headerVal?: string | null): number | undefined {
@@ -155,7 +175,7 @@ function classifyProviderError(err: unknown, provider: string): ProviderApiError
 
   if (/safety|prohibited|recitation|blocked/i.test(message)) {
     return new ProviderApiError(
-      "Safety ফিল্টারের কারণে এই ছবিটি স্কিপ করা হয়েছে।",
+      "Safety ফিল্টারের কারণে এই ফাইলটি স্কিপ করা হয়েছে।",
       422,
       "CONTENT_BLOCKED"
     );
@@ -171,7 +191,7 @@ function classifyProviderError(err: unknown, provider: string): ProviderApiError
 async function generateWithGemini(
   apiKey: string,
   modelName: string,
-  buffer: Buffer,
+  buffer: Buffer | null,
   mimeType: string,
   prompt: string
 ) {
@@ -184,15 +204,16 @@ async function generateWithGemini(
     },
   });
 
-  const result = await model.generateContent([
-    { inlineData: { data: buffer.toString("base64"), mimeType } },
-    prompt,
-  ]);
+  const parts = buffer
+    ? [{ inlineData: { data: buffer.toString("base64"), mimeType } }, prompt]
+    : [prompt];
+
+  const result = await model.generateContent(parts);
 
   const blockReason = result.response.promptFeedback?.blockReason;
   if (blockReason) {
     throw new ProviderApiError(
-      `Gemini safety filter blocked this image (${blockReason}).`,
+      `Gemini safety filter blocked this file (${blockReason}).`,
       422,
       "CONTENT_BLOCKED"
     );
@@ -201,7 +222,7 @@ async function generateWithGemini(
   const finishReason = result.response.candidates?.[0]?.finishReason;
   if (finishReason && ["SAFETY", "RECITATION", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII"].includes(finishReason)) {
     throw new ProviderApiError(
-      `Gemini blocked this image (${finishReason}).`,
+      `Gemini blocked this file (${finishReason}).`,
       422,
       "CONTENT_BLOCKED"
     );
@@ -213,21 +234,22 @@ async function generateWithGemini(
 async function generateWithGroq(
   apiKey: string,
   modelName: string,
-  buffer: Buffer,
+  buffer: Buffer | null,
   mimeType: string,
   prompt: string
 ) {
   const groq = new Groq({ apiKey });
-  const base64Image = buffer.toString("base64");
-  const messages = [
-    {
-      role: "user" as const,
-      content: [
+  const content = buffer
+    ? [
         { type: "text" as const, text: prompt },
-        { type: "image_url" as const, image_url: { url: `data:${mimeType};base64,${base64Image}` } },
-      ],
-    },
-  ];
+        {
+          type: "image_url" as const,
+          image_url: { url: `data:${mimeType};base64,${buffer.toString("base64")}` },
+        },
+      ]
+    : prompt;
+
+  const messages = [{ role: "user" as const, content }];
 
   try {
     const completion = await groq.chat.completions.create({
@@ -255,13 +277,21 @@ async function generateWithOpenAICompatible(opts: {
   baseUrl: string;
   apiKey: string;
   model: string;
-  buffer: Buffer;
+  buffer: Buffer | null;
   mimeType: string;
   prompt: string;
   providerLabel: string;
   extraHeaders?: Record<string, string>;
 }) {
-  const base64Image = opts.buffer.toString("base64");
+  const content = opts.buffer
+    ? [
+        { type: "text", text: opts.prompt },
+        {
+          type: "image_url",
+          image_url: { url: `data:${opts.mimeType};base64,${opts.buffer.toString("base64")}` },
+        },
+      ]
+    : opts.prompt;
 
   const res = await fetch(`${opts.baseUrl}/chat/completions`, {
     method: "POST",
@@ -272,15 +302,7 @@ async function generateWithOpenAICompatible(opts: {
     },
     body: JSON.stringify({
       model: opts.model,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: opts.prompt },
-            { type: "image_url", image_url: { url: `data:${opts.mimeType};base64,${base64Image}` } },
-          ],
-        },
-      ],
+      messages: [{ role: "user", content }],
       response_format: { type: "json_object" },
       temperature: 0.4,
     }),
@@ -363,6 +385,9 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const vectorContext = ((formData.get("vectorContext") as string) || "").trim();
+    const assetType = ((formData.get("assetType") as string) || "raster").trim();
+    const assetName = ((formData.get("assetName") as string) || file?.name || "asset").trim();
     const provider = (formData.get("provider") as string) || "gemini";
     const geminiModel = (formData.get("geminiModel") as string) || "gemini-3.8-flash";
     const groqModel = (formData.get("groqModel") as string) || "qwen/qwen3.8-27b";
@@ -376,8 +401,8 @@ export async function POST(req: Request) {
     const keywordsCount = Math.min(50, Math.max(5, Number(formData.get("keywordsCount")) || 43));
     const extraInstructions = ((formData.get("extraInstructions") as string) || "").trim();
 
-    if (!file) {
-      return NextResponse.json({ success: false, error: "No image selected." }, { status: 400 });
+    if (!file && !vectorContext) {
+      return NextResponse.json({ success: false, error: "No image or vector data provided." }, { status: 400 });
     }
 
     if (!apiKey) {
@@ -387,21 +412,61 @@ export async function POST(req: Request) {
       );
     }
 
-    if (file.size > 4_000_000) {
+    if (file && file.size > 4_000_000) {
       return NextResponse.json(
-        { success: false, error: "Image is still too large after compression. Please use an image under 4 MB." },
+        { success: false, error: "File preview is too large. Please use a file under 4 MB." },
         { status: 413 }
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const mimeType = file.type || "image/jpeg";
+    let buffer: Buffer | null = null;
+    let mimeType = "image/jpeg";
+
+    if (file) {
+      const rawBuf = Buffer.from(await file.arrayBuffer());
+      const rawType = file.type || "image/jpeg";
+
+      if (rawType === "image/svg+xml" || rawType === "image/tiff") {
+        try {
+          buffer = await sharp(rawBuf)
+            .resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
+            .flatten({ background: "#ffffff" })
+            .jpeg({ quality: 82 })
+            .toBuffer();
+          mimeType = "image/jpeg";
+        } catch {
+          // If SVG/TIFF cannot be rasterized on server, fall back to vectorContext
+          buffer = null;
+        }
+      } else {
+        buffer = rawBuf;
+        mimeType = rawType;
+      }
+    }
+
+    if (!buffer && !vectorContext) {
+      return NextResponse.json(
+        { success: false, error: "Could not read this file for AI analysis." },
+        { status: 422 }
+      );
+    }
+
     const includeDescription = PLATFORMS_WITH_DESCRIPTION.includes(platform);
 
     const prompt =
       mode === "prompt"
-        ? buildImagePromptPrompt({ extraInstructions })
-        : buildMetadataPrompt({ platform, titleLength, keywordsCount, extraInstructions, includeDescription });
+        ? buildImagePromptPrompt({ extraInstructions, assetType, vectorContext })
+        : buildMetadataPrompt({
+            platform,
+            titleLength,
+            keywordsCount,
+            extraInstructions,
+            includeDescription,
+            assetType,
+            assetName,
+            vectorContext,
+            hasImage: !!buffer,
+          });
 
     let rawText: string;
     try {
@@ -474,7 +539,7 @@ export async function POST(req: Request) {
         {
           success: false,
           code: "INVALID_JSON",
-          error: `${provider} returned unreadable JSON for this image.`,
+          error: `${provider} returned unreadable JSON for this file.`,
         },
         { status: 502 }
       );

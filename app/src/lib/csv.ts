@@ -62,7 +62,7 @@ const PLATFORM_SPECS: Record<Platform, CsvSpec> = {
       item.description || item.title || "",
       formatKeywords(item.keywords, 50),
       "",
-      "no",
+      /\.(eps|svg)$/i.test(item.file.name) ? "yes" : "no",
       "no",
       "no",
     ],

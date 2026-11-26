@@ -62,11 +62,17 @@ export default function ResultCard({ image, onUpdate }: Props) {
     <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-colors dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <img
-            src={image.previewUrl}
-            className="h-12 w-12 shrink-0 rounded-xl object-cover"
-            alt={image.file.name}
-          />
+          {image.previewUrl ? (
+            <img
+              src={image.previewUrl}
+              className="h-12 w-12 shrink-0 rounded-xl object-cover"
+              alt={image.file.name}
+            />
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xs font-bold uppercase text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
+              {image.assetType || "FILE"}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
               {image.file.name}
