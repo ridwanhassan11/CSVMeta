@@ -71,10 +71,16 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const generationLock = useRef(false);
+  const uploadLock = useRef(false);
   const stopRequested = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [images, setImages] = useState<ImageItem[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{
+    done: number;
+    total: number;
+    fileName: string;
+  } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [settings, setSettings] = useState<GenerationSettings>(DEFAULT_SETTINGS);
   const [savedKeys, setSavedKeys] = useState<Record<Provider, string[]>>(EMPTY_KEYS);
@@ -149,39 +155,77 @@ export default function HomePage() {
   );
 
   const addFiles = useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
+      if (uploadLock.current) {
+        pushLog("আগের ফাইলগুলোর আপলোড শেষ হওয়া পর্যন্ত একটু অপেক্ষা করুন।");
+        return;
+      }
       const valid = files.filter(isSupportedAsset);
       if (!valid.length) {
         pushLog("PNG, JPG, WEBP, SVG বা EPS ফাইল নির্বাচন করুন।");
         return;
       }
-      const added: ImageItem[] = valid.map((file) => {
-        const assetType = getAssetType(file);
-        return {
-          id: crypto.randomUUID(),
-          file,
-          assetType,
-          previewUrl: assetType === "raster" ? URL.createObjectURL(file) : "",
-          status: "pending" as const,
-        };
-      });
-      setImages((xs) => [...xs, ...added]);
-      setNotice(`${added.length}টি ফাইল আপলোড হয়েছে (মোট ${images.length + added.length}টি)।`);
 
-      // Generate previews asynchronously for SVG & EPS vector files
-      for (const item of added) {
-        if (item.assetType !== "raster") {
-          prepareAssetPreview(item.file)
-            .then((previewUrl) => {
-              setImages((xs) =>
-                xs.map((x) => (x.id === item.id ? { ...x, previewUrl } : x))
-              );
+      uploadLock.current = true;
+      const total = valid.length;
+      // Proportional total duration: fast for few files (~0.4-1.5s), scales gently for many, capped at 5.5s
+      const targetTotalMs =
+        total === 1
+          ? 380
+          : total <= 10
+            ? total * 150
+            : Math.min(5500, 1500 + (total - 10) * 45);
+      const chunkSize = total <= 12 ? 1 : Math.ceil(total / 24);
+      const totalSteps = Math.ceil(total / chunkSize);
+      const targetStepMs = targetTotalMs / totalSteps;
+
+      setUploadProgress({ done: 0, total, fileName: valid[0].name });
+      setNotice(`আপলোড হচ্ছে 0/${total}...`);
+
+      try {
+        let done = 0;
+        for (let i = 0; i < total; i += chunkSize) {
+          const slice = valid.slice(i, i + chunkSize);
+          const startedAt = performance.now();
+
+          const preparedChunk: ImageItem[] = await Promise.all(
+            slice.map(async (file) => {
+              const assetType = getAssetType(file);
+              let previewUrl = "";
+              try {
+                previewUrl = await prepareAssetPreview(file);
+              } catch {
+                previewUrl = assetType === "raster" ? URL.createObjectURL(file) : "";
+              }
+              return {
+                id: crypto.randomUUID(),
+                file,
+                assetType,
+                previewUrl,
+                status: "pending" as const,
+              };
             })
-            .catch(() => {});
+          );
+
+          done += preparedChunk.length;
+          const lastName = slice[slice.length - 1].name;
+          setImages((xs) => [...xs, ...preparedChunk]);
+          setUploadProgress({ done, total, fileName: lastName });
+          setNotice(`আপলোড হচ্ছে ${done}/${total}: ${lastName}`);
+
+          const elapsed = performance.now() - startedAt;
+          const remaining = Math.max(0, targetStepMs - elapsed);
+          if (remaining > 8) {
+            await sleep(remaining);
+          }
         }
+        setNotice(`${total}টি ফাইল সফলভাবে আপলোড হয়েছে।`);
+      } finally {
+        uploadLock.current = false;
+        setUploadProgress(null);
       }
     },
-    [images.length, pushLog]
+    [pushLog]
   );
 
   const removeImage = useCallback((id: string) => {
@@ -929,68 +973,92 @@ export default function HomePage() {
                   </div>
 
                   <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.classList.add("border-indigo-500", "bg-indigo-50/70");
-                      }}
-                      onDragLeave={(e) => {
-                        e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
-                        const dropped = Array.from(e.dataTransfer.files).filter(isSupportedAsset);
-                        if (dropped.length) addFiles(dropped);
-                      }}
-                      className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 transition hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-zinc-700 dark:bg-zinc-950/50 dark:hover:border-indigo-500 ${
-                        images.length > 0
-                          ? "h-[82px] flex-row justify-between px-5 text-left"
-                          : "h-[240px] flex-col text-center"
-                      }`}
-                      aria-label="Upload images and vectors"
-                    >
-                      {images.length > 0 ? (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    {uploadProgress ? (
+                      <div className="flex h-[96px] flex-col justify-center rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 px-5 dark:border-indigo-700 dark:bg-indigo-950/20">
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span className="truncate text-indigo-700 dark:text-indigo-300">
+                            Uploading {uploadProgress.done} / {uploadProgress.total} files ·{" "}
+                            <span className="font-normal text-slate-500 dark:text-zinc-400">
+                              {uploadProgress.fileName}
+                            </span>
+                          </span>
+                          <span className="ml-2 shrink-0 text-indigo-600 dark:text-indigo-300">
+                            {Math.round((uploadProgress.done / uploadProgress.total) * 100)}%
+                          </span>
+                        </div>
+                        <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-indigo-100 dark:bg-zinc-800">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-indigo-600 via-blue-500 to-emerald-500 transition-all duration-150"
+                            style={{
+                              width: `${Math.round((uploadProgress.done / uploadProgress.total) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.add("border-indigo-500", "bg-indigo-50/70");
+                        }}
+                        onDragLeave={(e) => {
+                          e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
+                          const dropped = Array.from(e.dataTransfer.files).filter(isSupportedAsset);
+                          if (dropped.length) void addFiles(dropped);
+                        }}
+                        className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 transition hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-zinc-700 dark:bg-zinc-950/50 dark:hover:border-indigo-500 ${
+                          images.length > 0
+                            ? "h-[82px] flex-row justify-between px-5 text-left"
+                            : "h-[240px] flex-col text-center"
+                        }`}
+                        aria-label="Upload images and vectors"
+                      >
+                        {images.length > 0 ? (
+                          <>
+                            <div className="flex items-center gap-3">
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
+                                ⇧
+                              </span>
+                              <div>
+                                <p className="text-sm font-bold text-slate-800 dark:text-white">
+                                  Add more files ({images.length} loaded)
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                                  Drag &amp; drop or click to append PNG, JPG, WEBP, SVG, EPS
+                                </p>
+                              </div>
+                            </div>
+                            <span className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm dark:bg-indigo-600">
+                              + Add Files
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600 transition group-hover:scale-105 dark:bg-indigo-950/60 dark:text-indigo-300">
                               ⇧
                             </span>
-                            <div>
-                              <p className="text-sm font-bold text-slate-800 dark:text-white">
-                                Add more files ({images.length} loaded)
-                              </p>
-                              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                                Drag &amp; drop or click to append PNG, JPG, WEBP, SVG, EPS
-                              </p>
-                            </div>
-                          </div>
-                          <span className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm dark:bg-indigo-600">
-                            + Add Files
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600 transition group-hover:scale-105 dark:bg-indigo-950/60 dark:text-indigo-300">
-                            ⇧
-                          </span>
-                          <span className="text-base font-bold text-slate-800 dark:text-white">
-                            Upload your images &amp; vectors
-                          </span>
-                          <span className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
-                            Drag &amp; drop files here, or click to browse
-                          </span>
-                          <span className="mt-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm">
-                            Choose Files
-                          </span>
-                          <span className="mt-2 text-xs text-slate-400">
-                            PNG, JPG, WEBP, SVG, EPS • Unlimited batch supported
-                          </span>
-                        </>
-                      )}
-                    </button>
+                            <span className="text-base font-bold text-slate-800 dark:text-white">
+                              Upload your images &amp; vectors
+                            </span>
+                            <span className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
+                              Drag &amp; drop files here, or click to browse
+                            </span>
+                            <span className="mt-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm">
+                              Choose Files
+                            </span>
+                            <span className="mt-2 text-xs text-slate-400">
+                              PNG, JPG, WEBP, SVG, EPS • Unlimited batch supported
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -999,7 +1067,7 @@ export default function HomePage() {
                       className="sr-only"
                       onChange={(e) => {
                         const files = Array.from(e.currentTarget.files || []);
-                        if (files.length) addFiles(files);
+                        if (files.length) void addFiles(files);
                         e.currentTarget.value = "";
                       }}
                     />
@@ -1051,7 +1119,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={generateAll}
-                    disabled={!images.length || busy}
+                    disabled={!images.length || busy || !!uploadProgress}
                     className="mt-4 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition hover:opacity-95 disabled:opacity-40"
                   >
                     {busy
