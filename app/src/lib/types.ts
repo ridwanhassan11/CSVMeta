@@ -42,6 +42,7 @@ export type GenerationSettings = {
   extraInstructions: string;
   parallel: boolean;
   delayMs: number;
+  batchSize: 1 | 3;
   smartFallback: boolean;
 };
 
@@ -58,7 +59,8 @@ export const DEFAULT_SETTINGS: GenerationSettings = {
   keywordsCount: 43,
   extraInstructions: "",
   parallel: false,
-  delayMs: 2000,
+  delayMs: 4500,
+  batchSize: 3,
   smartFallback: true,
 };
 

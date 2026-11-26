@@ -198,13 +198,33 @@ export default function ControlsPanel({
 
         <div className="mt-3.5">
           <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-            Request Pace
+            API Quota Saver &amp; Pace
           </p>
+          <div className="grid grid-cols-2 gap-1.5 mb-2">
+            {[
+              { size: 3 as const, label: "3 Images / Call (3x Quota)" },
+              { size: 1 as const, label: "1 Image / Call (Exact)" },
+            ].map((opt) => (
+              <button
+                key={opt.size}
+                type="button"
+                onClick={() => onChange({ batchSize: opt.size })}
+                disabled={disabled}
+                className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition ${
+                  (settings.batchSize ?? 3) === opt.size
+                    ? "border-slate-900 bg-slate-900 text-white dark:border-indigo-500 dark:bg-indigo-600"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <div className="grid grid-cols-3 gap-1.5">
             {[
-              { ms: 800, label: "Fast (0.8s)" },
-              { ms: 2000, label: "Safe (2s)" },
-              { ms: 4000, label: "Free Tier (4s)" },
+              { ms: 2000, label: "Fast (2s)" },
+              { ms: 4500, label: "Safe (4.5s)" },
+              { ms: 7000, label: "Free (7s)" },
             ].map((opt) => (
               <button
                 key={opt.ms}
@@ -212,7 +232,7 @@ export default function ControlsPanel({
                 onClick={() => onChange({ delayMs: opt.ms })}
                 disabled={disabled}
                 className={`rounded-lg border px-1.5 py-1.5 text-[11px] font-semibold transition ${
-                  (settings.delayMs ?? 2000) === opt.ms
+                  (settings.delayMs ?? 4500) === opt.ms
                     ? "border-slate-900 bg-slate-900 text-white dark:border-indigo-500 dark:bg-indigo-600"
                     : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
                 }`}

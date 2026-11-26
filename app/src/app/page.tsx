@@ -194,14 +194,16 @@ export default function HomePage() {
     setSelectedId((x) => (x === id ? null : x));
   }, []);
 
-  const requestGenerateOne = useCallback(
+  const requestGenerateBatch = useCallback(
     async (
-      image: ImageItem,
+      batch: ImageItem[],
       apiKey: string,
       signal?: AbortSignal,
       geminiModelOverride?: string
     ): Promise<{ ok: true } | { ok: false; failure: GenerateFailure }> => {
-      updateImage(image.id, { status: "loading", error: undefined });
+      for (const img of batch) {
+        updateImage(img.id, { status: "loading", error: undefined });
+      }
 
       const reqController = new AbortController();
       let timedOut = false;
@@ -214,15 +216,43 @@ export default function HomePage() {
 
       try {
         const body = new FormData();
-        const prepared = await prepareAssetForUpload(image.file);
-        if (prepared.uploadFile) {
-          body.append("file", prepared.uploadFile, prepared.uploadFile.name);
+        const isMulti = batch.length > 1 && settings.mode === "metadata";
+        const maxSide = isMulti ? 512 : 768;
+
+        if (isMulti) {
+          const metaList: Array<{
+            index: number;
+            assetType: string;
+            assetName: string;
+            vectorContext?: string;
+          }> = [];
+          for (let idx = 0; idx < batch.length; idx++) {
+            const img = batch[idx];
+            const prepared = await prepareAssetForUpload(img.file, maxSide);
+            if (prepared.uploadFile) {
+              body.append(`file_${idx}`, prepared.uploadFile, prepared.uploadFile.name);
+            }
+            metaList.push({
+              index: idx,
+              assetType: prepared.assetType,
+              assetName: img.file.name,
+              vectorContext: prepared.vectorContext,
+            });
+          }
+          body.append("batchItems", JSON.stringify(metaList));
+        } else {
+          const single = batch[0];
+          const prepared = await prepareAssetForUpload(single.file, maxSide);
+          if (prepared.uploadFile) {
+            body.append("file", prepared.uploadFile, prepared.uploadFile.name);
+          }
+          if (prepared.vectorContext) {
+            body.append("vectorContext", prepared.vectorContext);
+          }
+          body.append("assetType", prepared.assetType);
+          body.append("assetName", single.file.name);
         }
-        if (prepared.vectorContext) {
-          body.append("vectorContext", prepared.vectorContext);
-        }
-        body.append("assetType", prepared.assetType);
-        body.append("assetName", image.file.name);
+
         body.append("provider", settings.provider);
         body.append("geminiModel", geminiModelOverride || settings.geminiModel);
         body.append("groqModel", settings.groqModel);
@@ -277,8 +307,47 @@ export default function HomePage() {
           };
         }
 
+        if (isMulti) {
+          const items = Array.isArray(result.items)
+            ? (result.items as Array<Record<string, unknown>>)
+            : [];
+          const newHistory: HistoryItem[] = [];
+          for (let idx = 0; idx < batch.length; idx++) {
+            const img = batch[idx];
+            const itemRes = items.find((r) => Number(r.index) === idx) || items[idx];
+            if (!itemRes) {
+              return {
+                ok: false,
+                failure: {
+                  message: "Incomplete batch output; retrying individually.",
+                  code: "INVALID_JSON",
+                  status: 502,
+                },
+              };
+            }
+            const title = String(itemRes.title || "");
+            updateImage(img.id, {
+              status: "done",
+              title,
+              description:
+                itemRes.description !== undefined ? String(itemRes.description) : undefined,
+              keywords: Array.isArray(itemRes.keywords) ? itemRes.keywords.map(String) : [],
+              error: undefined,
+            });
+            newHistory.push({
+              id: img.id,
+              fileName: img.file.name,
+              title,
+              createdAt: new Date().toISOString(),
+            });
+          }
+          setHistory((h) => [...newHistory.reverse(), ...h].slice(0, 100));
+          return { ok: true };
+        }
+
+        const single = batch[0];
         updateImage(
-          image.id,
+          single.id,
           settings.mode === "prompt"
             ? { status: "done", prompt: String(result.prompt || ""), error: undefined }
             : {
@@ -293,8 +362,8 @@ export default function HomePage() {
         setHistory((h) =>
           [
             {
-              id: image.id,
-              fileName: image.file.name,
+              id: single.id,
+              fileName: single.file.name,
               title: result.title ? String(result.title) : undefined,
               prompt: result.prompt ? String(result.prompt) : undefined,
               createdAt: new Date().toISOString(),
@@ -316,7 +385,9 @@ export default function HomePage() {
               },
             };
           }
-          updateImage(image.id, { status: "pending", error: undefined });
+          for (const img of batch) {
+            updateImage(img.id, { status: "pending", error: undefined });
+          }
           return {
             ok: false,
             failure: { message: "Cancelled by user.", code: "ABORTED", status: 0 },
@@ -386,21 +457,26 @@ export default function HomePage() {
     let completedInRun = 0;
     let failedInRun = 0;
     let globalStopReason = "";
-    const paceMs = settings.delayMs ?? 2000;
+    const paceMs = settings.delayMs ?? 4500;
+    const chunkSize = settings.mode === "prompt" ? 1 : (settings.batchSize ?? 3);
+
+    const queue: ImageItem[][] = [];
+    for (let idx = 0; idx < pending.length; idx += chunkSize) {
+      queue.push(pending.slice(idx, idx + chunkSize));
+    }
+    let processedItems = 0;
 
     try {
-      for (let i = 0; i < pending.length; i++) {
-        if (stopRequested.current) break;
-
-        const item = pending[i];
-        let imageDone = false;
+      while (queue.length > 0 && !stopRequested.current) {
+        const batch = queue.shift()!;
+        let batchDone = false;
         let waitCycles = 0;
         const maxWaitCycles = 6;
         let lastImgError = "";
         let lastFailureCode = "";
         let lastFailureStatus = 0;
 
-        while (!imageDone && !stopRequested.current) {
+        while (!batchDone && !stopRequested.current) {
           const usableKeys = providerKeys.filter((k) => !disabledKeys.has(k.index));
           if (!usableKeys.length) {
             globalStopReason =
@@ -428,19 +504,24 @@ export default function HomePage() {
 
             triedReadyKey = true;
             setActiveKeys((cur) => ({ ...cur, [settings.provider]: candidate.index }));
+            const rangeLabel =
+              batch.length > 1
+                ? `${processedItems + 1}-${processedItems + batch.length}/${pending.length}`
+                : `${processedItems + 1}/${pending.length}`;
             setNotice(
-              `ছবি ${i + 1}/${pending.length} · Key ${candidate.index + 1}/${providerKeys.length}${activeModel ? ` (${activeModel})` : ""}: ${item.file.name}`
+              `ফাইল ${rangeLabel} · Key ${candidate.index + 1}/${providerKeys.length}${activeModel ? ` (${activeModel})` : ""}: ${batch[0].file.name}`
             );
 
-            const res = await requestGenerateOne(
-              item,
+            const res = await requestGenerateBatch(
+              batch,
               candidate.key,
               controller.signal,
               activeModel
             );
             if (res.ok) {
-              imageDone = true;
-              completedInRun++;
+              batchDone = true;
+              completedInRun += batch.length;
+              processedItems += batch.length;
               startPos = pos;
               break;
             }
@@ -468,7 +549,7 @@ export default function HomePage() {
                 pushLog(
                   `Key ${candidate.index + 1}-এ ${activeModel} সীমা/সমস্যা হওয়ায় ${nextModel} মডেলে সুইচ করা হচ্ছে...`
                 );
-                offset--; // retry same key immediately with fallback model
+                offset--;
                 continue;
               }
               disabledKeys.add(candidate.index);
@@ -480,16 +561,28 @@ export default function HomePage() {
               continue;
             }
 
+            if (batch.length > 1 && (fail.code === "INVALID_JSON" || fail.code === "CONTENT_BLOCKED" || fail.code === "CLIENT_IMAGE_ERROR" || fail.code === "PROVIDER_ERROR")) {
+              // Split failed multi-image batch into single items and retry 1-by-1
+              for (const singleItem of batch) {
+                updateImage(singleItem.id, { status: "pending", error: undefined });
+              }
+              queue.unshift(...batch.map((singleItem) => [singleItem]));
+              batchDone = true;
+              pushLog(`ব্যাচ রেসপন্স অসম্পূর্ণ হওয়ায় ${batch.length}টি ফাইল আলাদাভাবে ১টি করে প্রসেস করা হচ্ছে...`);
+              break;
+            }
+
             if (fail.code === "CONTENT_BLOCKED" || fail.code === "CLIENT_IMAGE_ERROR") {
-              updateImage(item.id, { status: "error", error: fail.message });
+              updateImage(batch[0].id, { status: "error", error: fail.message });
               failedInRun++;
-              imageDone = true;
-              pushLog(`${item.file.name} স্কিপ করা হয়েছে: ${fail.message}`);
+              processedItems++;
+              batchDone = true;
+              pushLog(`${batch[0].file.name} স্কিপ করা হয়েছে: ${fail.message}`);
               break;
             }
 
             if (fail.code === "RATE_LIMITED" || fail.status === 429) {
-              const waitSec = Math.min(60, Math.max(20, fail.retryAfterSeconds ?? 20));
+              const waitSec = Math.min(65, Math.max(22, fail.retryAfterSeconds ?? 22));
               keyCooldownUntil.set(candidate.index, Date.now() + waitSec * 1000);
               startPos = (pos + 1) % providerKeys.length;
               continue;
@@ -500,13 +593,14 @@ export default function HomePage() {
               continue;
             }
 
-            updateImage(item.id, { status: "error", error: fail.message });
+            updateImage(batch[0].id, { status: "error", error: fail.message });
             failedInRun++;
-            imageDone = true;
+            processedItems++;
+            batchDone = true;
             break;
           }
 
-          if (imageDone || stopRequested.current || globalStopReason) break;
+          if (batchDone || stopRequested.current || globalStopReason) break;
 
           const stillUsable = providerKeys.filter((k) => !disabledKeys.has(k.index));
           if (!stillUsable.length) {
@@ -523,12 +617,15 @@ export default function HomePage() {
             /429|rate.?limit/i.test(lastImgError);
           const effectiveMaxCycles = isRateLimitError ? maxWaitCycles : 2;
           if (waitCycles > effectiveMaxCycles) {
-            updateImage(item.id, {
-              status: "error",
-              error: lastImgError || "একটানা কয়েকবার চেষ্টা করেও এই ছবিটি জেনারেট হয়নি।",
-            });
-            failedInRun++;
-            pushLog(`${item.file.name} ব্যর্থ হয়েছে: ${lastImgError || "Unknown error"}`);
+            for (const singleItem of batch) {
+              updateImage(singleItem.id, {
+                status: "error",
+                error: lastImgError || "একটানা কয়েকবার চেষ্টা করেও এই ফাইলটি জেনারেট হয়নি।",
+              });
+              failedInRun++;
+              processedItems++;
+            }
+            pushLog(`${batch[0].file.name} ব্যর্থ হয়েছে: ${lastImgError || "Unknown error"}`);
             break;
           }
 
@@ -540,28 +637,30 @@ export default function HomePage() {
             : waitCycles >= 3
               ? 60_000
               : triedReadyKey
-                ? Math.min(25_000, 5_000 * waitCycles)
-                : Math.min(60_000, Math.max(5_000, soonestReady - Date.now()));
+                ? Math.min(30_000, 10_000 * waitCycles)
+                : Math.min(60_000, Math.max(8_000, soonestReady - Date.now()));
 
           pushLog(
             isRateLimitError
-              ? `Rate limit-এর কারণে ${Math.ceil(waitMs / 1000)} সেকেন্ড অপেক্ষা করা হচ্ছে (${waitCycles}/${effectiveMaxCycles})...`
+              ? `API মিনিট-লিমিটের কারণে ${Math.ceil(waitMs / 1000)} সেকেন্ড অপেক্ষা করা হচ্ছে (${waitCycles}/${effectiveMaxCycles})...`
               : `সাময়িক ত্রুটির কারণে ${Math.ceil(waitMs / 1000)} সেকেন্ড পর আবার চেষ্টা করা হচ্ছে (${waitCycles}/${effectiveMaxCycles}): ${lastImgError.slice(0, 120)}`
           );
           await sleep(waitMs, controller.signal);
         }
 
         if (stopRequested.current || globalStopReason) {
-          if (item.status === "loading") {
-            updateImage(item.id, { status: "pending" });
+          for (const singleItem of batch) {
+            if (singleItem.status === "loading") {
+              updateImage(singleItem.id, { status: "pending" });
+            }
           }
           break;
         }
 
-        if (i < pending.length - 1 && !stopRequested.current) {
+        if (queue.length > 0 && !stopRequested.current) {
           const effectiveDelay =
             providerKeys.filter((k) => !disabledKeys.has(k.index)).length > 1
-              ? Math.min(paceMs, 1000)
+              ? Math.min(paceMs, 1500)
               : paceMs;
           await sleep(effectiveDelay, controller.signal);
         }

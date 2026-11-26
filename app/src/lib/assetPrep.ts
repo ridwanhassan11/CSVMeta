@@ -369,7 +369,7 @@ function normalizeSvgMarkup(rawSvg: string): string {
   return svg;
 }
 
-async function renderBlobToJpeg(blob: Blob): Promise<File> {
+async function renderBlobToJpeg(blob: Blob, maxSide = 768): Promise<File> {
   const url = URL.createObjectURL(blob);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -378,9 +378,8 @@ async function renderBlobToJpeg(blob: Blob): Promise<File> {
       el.onerror = () => reject(new Error("Could not decode image."));
       el.src = url;
     });
-    const w = img.naturalWidth || img.width || 1024;
-    const h = img.naturalHeight || img.height || 1024;
-    const maxSide = 1280;
+    const w = img.naturalWidth || img.width || 768;
+    const h = img.naturalHeight || img.height || 768;
     const scale = Math.min(1, maxSide / Math.max(w, h));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, Math.round(w * scale));
@@ -395,7 +394,7 @@ async function renderBlobToJpeg(blob: Blob): Promise<File> {
       canvas.toBlob(
         (v) => (v ? resolve(v) : reject(new Error("Compression failed."))),
         "image/jpeg",
-        0.82
+        0.74
       );
     });
     return new File([outBlob], "preview.jpg", { type: "image/jpeg" });
@@ -481,7 +480,10 @@ export async function prepareAssetPreview(file: File): Promise<string> {
   }
 }
 
-export async function prepareAssetForUpload(file: File): Promise<{
+export async function prepareAssetForUpload(
+  file: File,
+  maxSide = 768
+): Promise<{
   uploadFile?: File;
   vectorContext?: string;
   assetType: AssetType;
@@ -493,14 +495,13 @@ export async function prepareAssetForUpload(file: File): Promise<{
     const normalized = normalizeSvgMarkup(rawText);
     const svgBlob = new Blob([normalized], { type: "image/svg+xml" });
     try {
-      const jpg = await renderBlobToJpeg(svgBlob);
+      const jpg = await renderBlobToJpeg(svgBlob, maxSide);
       return {
         uploadFile: new File([jpg], file.name.replace(/\.svg$/i, ".jpg"), { type: "image/jpeg" }),
         vectorContext: `Vector SVG file: ${file.name}`,
         assetType,
       };
     } catch {
-      // Fallback: let server rasterize via Sharp or analyze SVG markup
       return {
         uploadFile: new File([svgBlob], file.name, { type: "image/svg+xml" }),
         vectorContext: `Vector SVG file: ${file.name}\nMarkup summary:\n${rawText.slice(0, 3000)}`,
@@ -513,7 +514,7 @@ export async function prepareAssetForUpload(file: File): Promise<{
     const { visualBlob, vectorContext } = await decodeEpsVisual(file);
     if (visualBlob) {
       try {
-        const jpg = await renderBlobToJpeg(visualBlob);
+        const jpg = await renderBlobToJpeg(visualBlob, maxSide);
         return {
           uploadFile: new File([jpg], file.name.replace(/\.eps$/i, ".jpg"), { type: "image/jpeg" }),
           vectorContext,
@@ -544,8 +545,8 @@ export async function prepareAssetForUpload(file: File): Promise<{
       });
     }
 
-    const encode = async (maxSide: number, quality: number): Promise<Blob> => {
-      const scale = Math.min(1, maxSide / Math.max(source!.width, source!.height));
+    const encode = async (targetSide: number, quality: number): Promise<Blob> => {
+      const scale = Math.min(1, targetSide / Math.max(source!.width, source!.height));
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(source!.width * scale));
       canvas.height = Math.max(1, Math.round(source!.height * scale));
@@ -563,8 +564,8 @@ export async function prepareAssetForUpload(file: File): Promise<{
       });
     };
 
-    let blob = await encode(1280, 0.78);
-    if (blob.size > 3_500_000) blob = await encode(1024, 0.65);
+    let blob = await encode(maxSide, 0.74);
+    if (blob.size > 2_500_000) blob = await encode(512, 0.65);
 
     const cleanName = file.name.replace(/\.(png|jpe?g|webp|avif|bmp|gif)$/i, "") + ".jpg";
     return {

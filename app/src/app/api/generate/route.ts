@@ -26,19 +26,25 @@ class ProviderApiError extends Error {
   }
 }
 
-function buildMetadataPrompt(opts: {
+type AssetInput = {
+  index: number;
+  buffer: Buffer | null;
+  mimeType: string;
+  assetType: string;
+  assetName: string;
+  vectorContext: string;
+};
+
+function buildSingleMetadataPrompt(opts: {
   platform: string;
   titleLength: number;
   keywordsCount: number;
   extraInstructions: string;
   includeDescription: boolean;
-  assetType: string;
-  assetName: string;
-  vectorContext: string;
-  hasImage: boolean;
+  asset: AssetInput;
 }) {
   const platformLabel = PLATFORM_LABELS[opts.platform] || "a stock platform";
-  const isVector = opts.assetType === "eps" || opts.assetType === "svg";
+  const isVector = opts.asset.assetType === "eps" || opts.asset.assetType === "svg";
 
   const jsonShape = opts.includeDescription
     ? `{
@@ -52,11 +58,11 @@ function buildMetadataPrompt(opts: {
 }`;
 
   const vectorNote = isVector
-    ? `- This asset is a ${opts.assetType.toUpperCase()} vector graphic (${opts.assetName}). Include appropriate vector/illustration terms where natural (e.g., vector, illustration, graphic, isolated if relevant).`
+    ? `- This asset is a ${opts.asset.assetType.toUpperCase()} vector graphic (${opts.asset.assetName}). Include appropriate vector/illustration terms where natural.`
     : "";
 
-  const contextSection = opts.vectorContext
-    ? `\nAsset Context (${opts.hasImage ? "supplemental to image" : "analyze from filename & vector metadata"}):\n${opts.vectorContext}\n`
+  const contextSection = opts.asset.vectorContext
+    ? `\nAsset Context (${opts.asset.buffer ? "supplemental to image" : "analyze from filename & vector metadata"}):\n${opts.asset.vectorContext}\n`
     : "";
 
   return `Return ONLY valid JSON in this exact shape:
@@ -70,6 +76,48 @@ ${vectorNote}
 - Do not include brand names, trademarks, camera specs, or generic filler unless directly visible.
 - Return JSON only. No markdown fences. No explanation.
 ${opts.extraInstructions ? `- Additional instructions: ${opts.extraInstructions}` : ""}${contextSection}`;
+}
+
+function buildBatchMetadataPrompt(opts: {
+  platform: string;
+  titleLength: number;
+  keywordsCount: number;
+  extraInstructions: string;
+  includeDescription: boolean;
+  assets: AssetInput[];
+}) {
+  const platformLabel = PLATFORM_LABELS[opts.platform] || "a stock platform";
+  const itemShape = opts.includeDescription
+    ? `{ "index": 0, "title": "", "description": "", "keywords": [] }`
+    : `{ "index": 0, "title": "", "keywords": [] }`;
+
+  const assetNotes = opts.assets
+    .map((a) => {
+      const vec = a.assetType === "eps" || a.assetType === "svg" ? ` [${a.assetType.toUpperCase()} vector]` : "";
+      const ctx = a.vectorContext ? ` — ${a.vectorContext.replace(/\n+/g, "; ")}` : "";
+      return `Item ${a.index}: ${a.assetName}${vec}${ctx}`;
+    })
+    .join("\n");
+
+  return `Analyze ALL ${opts.assets.length} assets in order (Item 0 to Item ${opts.assets.length - 1}).
+Return ONLY valid JSON in this exact shape:
+{
+  "items": [
+    ${itemShape}
+  ]
+}
+
+Rules for EACH item:
+- Must include exact matching "index" (0..${opts.assets.length - 1}), returning all ${opts.assets.length} items.
+- Commercial stock title suited for ${platformLabel}, max ${opts.titleLength} characters.
+${opts.includeDescription ? "- Factual description of around 140-180 characters." : ""}
+- Up to ${opts.keywordsCount} relevant keywords (comma-free individual words or short 2-word phrases), ordered by relevance.
+- For EPS/SVG items, include natural vector/illustration terms.
+- Return JSON only. No markdown fences. No explanation.
+${opts.extraInstructions ? `- Additional instructions: ${opts.extraInstructions}` : ""}
+
+Assets:
+${assetNotes}`;
 }
 
 function buildImagePromptPrompt(opts: {
@@ -135,7 +183,10 @@ function classifyProviderError(err: unknown, provider: string): ProviderApiError
     );
   }
 
-  if (status === 404 || /model[_ ]?not[_ ]?found|is not found for API version|does not exist/i.test(message)) {
+  if (
+    status === 404 ||
+    /model[_ ]?not[_ ]?found|is not found for API version|does not exist|model.*not supported/i.test(message)
+  ) {
     return new ProviderApiError(
       `নির্বাচিত ${provider} মডেলটি পাওয়া যায়নি। API Keys মেনু থেকে অন্য একটি মডেল নির্বাচন করুন। (${message.slice(0, 140)})`,
       404,
@@ -148,15 +199,15 @@ function classifyProviderError(err: unknown, provider: string): ProviderApiError
     /429|quota|resource[_ ]?exhausted|rate.?limit|too many requests|generate_content_free_tier/i.test(message);
 
   if (isRateOrQuota) {
+    // Only mark permanent QUOTA_EXHAUSTED when explicitly daily / zero-limit / insufficient_quota;
+    // Gemini's standard per-minute 429 also contains "You exceeded your current quota" & "billing", so treat it as RATE_LIMITED.
     const isHardQuota =
-      /limit:\s*0|exceeded your current quota|insufficient_quota|billing|PerDay|daily limit/i.test(message) &&
+      /limit:\s*0|PerDay|requests_per_day|daily[_ ]?limit|insufficient_quota/i.test(message) &&
       !/PerMinute/i.test(message);
 
     if (isHardQuota) {
       return new ProviderApiError(
-        provider === "gemini"
-          ? "Google Gemini API key-টির দৈনিক/Free Tier quota শেষ হয়েছে। অন্য API key বা অন্য provider ব্যবহার করুন।"
-          : `${provider} API key-টির quota শেষ হয়েছে। অন্য API key বা অন্য provider ব্যবহার করুন।`,
+        `${provider} API key-টির দৈনিক/Free Tier quota শেষ হয়েছে (limit reached)। অন্য প্রজেক্ট/অ্যাকাউন্টের API key বা Groq/OpenRouter ব্যবহার করুন। (${message.slice(0, 120)})`,
         429,
         "QUOTA_EXHAUSTED",
         retryAfter
@@ -164,10 +215,10 @@ function classifyProviderError(err: unknown, provider: string): ProviderApiError
     }
 
     return new ProviderApiError(
-      `${provider} rate limit (প্রতি মিনিটের সীমা) পূর্ণ হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করা হবে।`,
+      `${provider} প্রতি মিনিটের rate limit পূর্ণ হয়েছে—অপেক্ষা করে আবার চেষ্টা করা হচ্ছে।`,
       429,
       "RATE_LIMITED",
-      retryAfter ?? 15
+      retryAfter ?? 20
     );
   }
 
@@ -189,14 +240,21 @@ function classifyProviderError(err: unknown, provider: string): ProviderApiError
 async function generateWithGemini(
   apiKey: string,
   modelName: string,
-  buffer: Buffer | null,
-  mimeType: string,
+  assets: AssetInput[],
   prompt: string
 ) {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const parts = buffer
-    ? [{ inlineData: { data: buffer.toString("base64"), mimeType } }, prompt]
-    : [prompt];
+  const parts: Array<string | { inlineData: { data: string; mimeType: string } }> = [];
+
+  for (const asset of assets) {
+    if (assets.length > 1) {
+      parts.push(`--- Asset Item ${asset.index}: ${asset.assetName} ---`);
+    }
+    if (asset.buffer) {
+      parts.push({ inlineData: { data: asset.buffer.toString("base64"), mimeType: asset.mimeType } });
+    }
+  }
+  parts.push(prompt);
 
   let result;
   try {
@@ -239,24 +297,37 @@ async function generateWithGemini(
   return result.response.text();
 }
 
+function buildMultiModalContent(assets: AssetInput[], prompt: string) {
+  const hasAnyImage = assets.some((a) => a.buffer !== null);
+  if (!hasAnyImage) return prompt;
+
+  const content: Array<
+    { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }
+  > = [];
+
+  for (const asset of assets) {
+    if (assets.length > 1) {
+      content.push({ type: "text", text: `Item ${asset.index} (${asset.assetName}):` });
+    }
+    if (asset.buffer) {
+      content.push({
+        type: "image_url",
+        image_url: { url: `data:${asset.mimeType};base64,${asset.buffer.toString("base64")}` },
+      });
+    }
+  }
+  content.push({ type: "text", text: prompt });
+  return content;
+}
+
 async function generateWithGroq(
   apiKey: string,
   modelName: string,
-  buffer: Buffer | null,
-  mimeType: string,
+  assets: AssetInput[],
   prompt: string
 ) {
   const groq = new Groq({ apiKey });
-  const content = buffer
-    ? [
-        { type: "text" as const, text: prompt },
-        {
-          type: "image_url" as const,
-          image_url: { url: `data:${mimeType};base64,${buffer.toString("base64")}` },
-        },
-      ]
-    : prompt;
-
+  const content = buildMultiModalContent(assets, prompt);
   const messages = [{ role: "user" as const, content }];
 
   try {
@@ -285,21 +356,12 @@ async function generateWithOpenAICompatible(opts: {
   baseUrl: string;
   apiKey: string;
   model: string;
-  buffer: Buffer | null;
-  mimeType: string;
+  assets: AssetInput[];
   prompt: string;
   providerLabel: string;
   extraHeaders?: Record<string, string>;
 }) {
-  const content = opts.buffer
-    ? [
-        { type: "text", text: opts.prompt },
-        {
-          type: "image_url",
-          image_url: { url: `data:${opts.mimeType};base64,${opts.buffer.toString("base64")}` },
-        },
-      ]
-    : opts.prompt;
+  const content = buildMultiModalContent(opts.assets, opts.prompt);
 
   const res = await fetch(`${opts.baseUrl}/chat/completions`, {
     method: "POST",
@@ -384,10 +446,6 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    const vectorContext = ((formData.get("vectorContext") as string) || "").trim();
-    const assetType = ((formData.get("assetType") as string) || "raster").trim();
-    const assetName = ((formData.get("assetName") as string) || file?.name || "asset").trim();
     const provider = (formData.get("provider") as string) || "gemini";
     const geminiModel = (formData.get("geminiModel") as string) || "gemini-3.8-flash";
     const groqModel = (formData.get("groqModel") as string) || "qwen/qwen3.8-27b";
@@ -401,10 +459,6 @@ export async function POST(req: Request) {
     const keywordsCount = Math.min(50, Math.max(5, Number(formData.get("keywordsCount")) || 43));
     const extraInstructions = ((formData.get("extraInstructions") as string) || "").trim();
 
-    if (!file && !vectorContext) {
-      return NextResponse.json({ success: false, error: "No image or vector data provided." }, { status: 400 });
-    }
-
     if (!apiKey) {
       return NextResponse.json(
         { success: false, code: "INVALID_API_KEY", error: `No ${provider} API key provided. Add one via "API Keys".` },
@@ -412,62 +466,107 @@ export async function POST(req: Request) {
       );
     }
 
-    if (file && file.size > 4_000_000) {
-      return NextResponse.json(
-        { success: false, error: "File preview is too large. Please use a file under 4 MB." },
-        { status: 413 }
-      );
-    }
+    const batchMetaRaw = formData.get("batchItems") as string | null;
+    const assets: AssetInput[] = [];
 
-    let buffer: Buffer | null = null;
-    let mimeType = "image/jpeg";
+    if (batchMetaRaw) {
+      const metaList = JSON.parse(batchMetaRaw) as Array<{
+        index: number;
+        assetType?: string;
+        assetName?: string;
+        vectorContext?: string;
+      }>;
+      for (const m of metaList) {
+        const f = formData.get(`file_${m.index}`) as File | null;
+        if (f && f.size > 3_500_000) {
+          return NextResponse.json(
+            { success: false, error: "File preview is too large." },
+            { status: 413 }
+          );
+        }
+        let buffer: Buffer | null = null;
+        let mimeType = "image/jpeg";
+        if (f && f.type !== "image/svg+xml" && f.type !== "image/tiff") {
+          buffer = Buffer.from(await f.arrayBuffer());
+          mimeType = f.type || "image/jpeg";
+        }
+        assets.push({
+          index: m.index,
+          buffer,
+          mimeType,
+          assetType: m.assetType || "raster",
+          assetName: m.assetName || f?.name || `asset-${m.index}`,
+          vectorContext: (m.vectorContext || "").trim(),
+        });
+      }
+    } else {
+      const file = formData.get("file") as File | null;
+      const vectorContext = ((formData.get("vectorContext") as string) || "").trim();
+      const assetType = ((formData.get("assetType") as string) || "raster").trim();
+      const assetName = ((formData.get("assetName") as string) || file?.name || "asset").trim();
 
-    if (file) {
-      const rawType = file.type || "image/jpeg";
-      // Only send raster image formats directly to vision models; SVG/TIFF fallback to vectorContext
-      if (rawType !== "image/svg+xml" && rawType !== "image/tiff") {
+      if (file && file.size > 4_000_000) {
+        return NextResponse.json(
+          { success: false, error: "File preview is too large. Please use a file under 4 MB." },
+          { status: 413 }
+        );
+      }
+
+      let buffer: Buffer | null = null;
+      let mimeType = "image/jpeg";
+      if (file && file.type !== "image/svg+xml" && file.type !== "image/tiff") {
         buffer = Buffer.from(await file.arrayBuffer());
-        mimeType = rawType;
+        mimeType = file.type || "image/jpeg";
+      }
+      if (buffer || vectorContext) {
+        assets.push({ index: 0, buffer, mimeType, assetType, assetName, vectorContext });
       }
     }
 
-    if (!buffer && !vectorContext) {
-      return NextResponse.json(
-        { success: false, error: "Could not read this file for AI analysis." },
-        { status: 422 }
-      );
+    if (!assets.length || assets.some((a) => !a.buffer && !a.vectorContext)) {
+      return NextResponse.json({ success: false, error: "No image or vector data provided." }, { status: 400 });
     }
 
     const includeDescription = PLATFORMS_WITH_DESCRIPTION.includes(platform);
+    const isBatch = assets.length > 1 && mode === "metadata";
 
     const prompt =
       mode === "prompt"
-        ? buildImagePromptPrompt({ extraInstructions, assetType, vectorContext })
-        : buildMetadataPrompt({
-            platform,
-            titleLength,
-            keywordsCount,
+        ? buildImagePromptPrompt({
             extraInstructions,
-            includeDescription,
-            assetType,
-            assetName,
-            vectorContext,
-            hasImage: !!buffer,
-          });
+            assetType: assets[0].assetType,
+            vectorContext: assets[0].vectorContext,
+          })
+        : isBatch
+          ? buildBatchMetadataPrompt({
+              platform,
+              titleLength,
+              keywordsCount,
+              extraInstructions,
+              includeDescription,
+              assets,
+            })
+          : buildSingleMetadataPrompt({
+              platform,
+              titleLength,
+              keywordsCount,
+              extraInstructions,
+              includeDescription,
+              asset: assets[0],
+            });
 
     let rawText: string;
     try {
       switch (provider) {
         case "groq":
-          rawText = await generateWithGroq(apiKey, groqModel, buffer, mimeType, prompt);
+          rawText = await generateWithGroq(apiKey, groqModel, assets, prompt);
           break;
         case "mistral":
           rawText = await generateWithOpenAICompatible({
             baseUrl: "https://api.mistral.ai/v1",
             apiKey,
             model: mistralModel,
-            buffer,
-            mimeType,
+            assets,
             prompt,
             providerLabel: "Mistral",
           });
@@ -477,8 +576,7 @@ export async function POST(req: Request) {
             baseUrl: "https://api.openai.com/v1",
             apiKey,
             model: openaiModel,
-            buffer,
-            mimeType,
+            assets,
             prompt,
             providerLabel: "OpenAI",
           });
@@ -488,8 +586,7 @@ export async function POST(req: Request) {
             baseUrl: "https://openrouter.ai/api/v1",
             apiKey,
             model: openrouterModel,
-            buffer,
-            mimeType,
+            assets,
             prompt,
             providerLabel: "OpenRouter",
             extraHeaders: {
@@ -499,7 +596,7 @@ export async function POST(req: Request) {
           });
           break;
         default:
-          rawText = await generateWithGemini(apiKey, geminiModel, buffer, mimeType, prompt);
+          rawText = await generateWithGemini(apiKey, geminiModel, assets, prompt);
       }
     } catch (providerError: unknown) {
       const classified = classifyProviderError(providerError, provider);
@@ -526,7 +623,7 @@ export async function POST(req: Request) {
         {
           success: false,
           code: "INVALID_JSON",
-          error: `${provider} returned unreadable JSON for this file.`,
+          error: `${provider} returned unreadable JSON.`,
         },
         { status: 502 }
       );
@@ -537,6 +634,29 @@ export async function POST(req: Request) {
         success: true,
         prompt: String(data.prompt || "").trim(),
       });
+    }
+
+    if (isBatch) {
+      const rawItems = Array.isArray(data.items) ? (data.items as Array<Record<string, unknown>>) : [];
+      if (rawItems.length < assets.length) {
+        return NextResponse.json(
+          { success: false, code: "INVALID_JSON", error: "Incomplete batch response." },
+          { status: 502 }
+        );
+      }
+      const normalized = assets.map((a, idx) => {
+        const found =
+          rawItems.find((r) => Number(r.index) === a.index) || rawItems[idx] || {};
+        return {
+          index: a.index,
+          title: clampText(String(found.title || ""), titleLength),
+          description: includeDescription
+            ? clampText(String(found.description || found.title || ""), 200)
+            : undefined,
+          keywords: normalizeKeywords(found.keywords, keywordsCount),
+        };
+      });
+      return NextResponse.json({ success: true, items: normalized });
     }
 
     const title = clampText(String(data.title || ""), titleLength);
