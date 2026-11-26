@@ -1,17 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
-
     const { provider, model, apiKey } = (await req.json()) as {
       provider: string;
       model: string;

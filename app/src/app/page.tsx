@@ -397,6 +397,8 @@ export default function HomePage() {
         let waitCycles = 0;
         const maxWaitCycles = 6;
         let lastImgError = "";
+        let lastFailureCode = "";
+        let lastFailureStatus = 0;
 
         while (!imageDone && !stopRequested.current) {
           const usableKeys = providerKeys.filter((k) => !disabledKeys.has(k.index));
@@ -445,6 +447,8 @@ export default function HomePage() {
 
             const fail = res.failure;
             lastImgError = fail.message;
+            lastFailureCode = fail.code;
+            lastFailureStatus = fail.status;
 
             if (fail.code === "ABORTED") {
               stopRequested.current = true;
@@ -513,28 +517,36 @@ export default function HomePage() {
           }
 
           waitCycles++;
-          if (waitCycles > maxWaitCycles) {
+          const isRateLimitError =
+            lastFailureCode === "RATE_LIMITED" ||
+            lastFailureStatus === 429 ||
+            /429|rate.?limit/i.test(lastImgError);
+          const effectiveMaxCycles = isRateLimitError ? maxWaitCycles : 2;
+          if (waitCycles > effectiveMaxCycles) {
             updateImage(item.id, {
               status: "error",
               error: lastImgError || "একটানা কয়েকবার চেষ্টা করেও এই ছবিটি জেনারেট হয়নি।",
             });
             failedInRun++;
-            pushLog(`${item.file.name} ব্যর্থ হয়েছে, পরের ছবিতে যাওয়া হচ্ছে...`);
+            pushLog(`${item.file.name} ব্যর্থ হয়েছে: ${lastImgError || "Unknown error"}`);
             break;
           }
 
           const soonestReady = Math.min(
             ...stillUsable.map((k) => keyCooldownUntil.get(k.index) || Date.now())
           );
-          const waitMs =
-            waitCycles >= 3
+          const waitMs = !isRateLimitError
+            ? 3_000
+            : waitCycles >= 3
               ? 60_000
               : triedReadyKey
                 ? Math.min(25_000, 5_000 * waitCycles)
                 : Math.min(60_000, Math.max(5_000, soonestReady - Date.now()));
 
           pushLog(
-            `Rate limit-এর কারণে ${Math.ceil(waitMs / 1000)} সেকেন্ড অপেক্ষা করা হচ্ছে (${waitCycles}/${maxWaitCycles})...`
+            isRateLimitError
+              ? `Rate limit-এর কারণে ${Math.ceil(waitMs / 1000)} সেকেন্ড অপেক্ষা করা হচ্ছে (${waitCycles}/${effectiveMaxCycles})...`
+              : `সাময়িক ত্রুটির কারণে ${Math.ceil(waitMs / 1000)} সেকেন্ড পর আবার চেষ্টা করা হচ্ছে (${waitCycles}/${effectiveMaxCycles}): ${lastImgError.slice(0, 120)}`
           );
           await sleep(waitMs, controller.signal);
         }

@@ -1,8 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
-import sharp from "sharp";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 
 const PLATFORM_LABELS: Record<string, string> = {
   general: "a general stock photography and vector platform",
@@ -126,7 +124,7 @@ function classifyProviderError(err: unknown, provider: string): ProviderApiError
   if (
     status === 401 ||
     status === 403 ||
-    /api[_ ]?key[_ ]?invalid|invalid[_ ]?api[_ ]?key|incorrect api key|unauthorized|permission_denied|authentication/i.test(
+    /api[_ ]?key[_ ]?invalid|api[_ ]?key not valid|invalid[_ ]?api[_ ]?key|incorrect api key|unauthorized|permission_denied|authentication/i.test(
       message
     )
   ) {
@@ -196,19 +194,29 @@ async function generateWithGemini(
   prompt: string
 ) {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig: {
-      responseMimeType: "application/json",
-      temperature: 0.4,
-    },
-  });
-
   const parts = buffer
     ? [{ inlineData: { data: buffer.toString("base64"), mimeType } }, prompt]
     : [prompt];
 
-  const result = await model.generateContent(parts);
+  let result;
+  try {
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.4,
+      },
+    });
+    result = await model.generateContent(parts);
+  } catch (err: unknown) {
+    const msg = String((err as { message?: string })?.message || "");
+    if (/json|responseMimeType|generationConfig/i.test(msg)) {
+      const fallbackModel = genAI.getGenerativeModel({ model: modelName });
+      result = await fallbackModel.generateContent(parts);
+    } else {
+      throw err;
+    }
+  }
 
   const blockReason = result.response.promptFeedback?.blockReason;
   if (blockReason) {
@@ -375,14 +383,6 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { success: false, code: "UNAUTHORIZED", error: "Please sign in to generate metadata." },
-        { status: 401 }
-      );
-    }
-
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const vectorContext = ((formData.get("vectorContext") as string) || "").trim();
@@ -423,23 +423,10 @@ export async function POST(req: Request) {
     let mimeType = "image/jpeg";
 
     if (file) {
-      const rawBuf = Buffer.from(await file.arrayBuffer());
       const rawType = file.type || "image/jpeg";
-
-      if (rawType === "image/svg+xml" || rawType === "image/tiff") {
-        try {
-          buffer = await sharp(rawBuf)
-            .resize({ width: 1280, height: 1280, fit: "inside", withoutEnlargement: true })
-            .flatten({ background: "#ffffff" })
-            .jpeg({ quality: 82 })
-            .toBuffer();
-          mimeType = "image/jpeg";
-        } catch {
-          // If SVG/TIFF cannot be rasterized on server, fall back to vectorContext
-          buffer = null;
-        }
-      } else {
-        buffer = rawBuf;
+      // Only send raster image formats directly to vision models; SVG/TIFF fallback to vectorContext
+      if (rawType !== "image/svg+xml" && rawType !== "image/tiff") {
+        buffer = Buffer.from(await file.arrayBuffer());
         mimeType = rawType;
       }
     }
