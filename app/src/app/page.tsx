@@ -1021,15 +1021,15 @@ export default function HomePage() {
                       >
                         {images.length > 0 ? (
                           <>
-                            <div className="flex items-center gap-3">
+                            <div className="flex min-w-0 items-center gap-3 pr-3">
                               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
                                 ⇧
                               </span>
-                              <div>
-                                <p className="text-sm font-bold text-slate-800 dark:text-white">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-slate-800 dark:text-white">
                                   Add more files ({images.length} loaded)
                                 </p>
-                                <p className="text-xs text-slate-500 dark:text-zinc-400">
+                                <p className="truncate text-xs text-slate-500 dark:text-zinc-400">
                                   Drag &amp; drop or click to append PNG, JPG, WEBP, SVG, EPS
                                 </p>
                               </div>
@@ -1094,8 +1094,8 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs min-[900px]:sticky min-[900px]:top-[62px] min-[900px]:self-start dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="mb-3 flex items-center justify-between">
+                <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs min-[900px]:sticky min-[900px]:top-[60px] min-[900px]:flex min-[900px]:max-h-[calc(100vh-72px)] min-[900px]:flex-col min-[900px]:self-start dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="mb-2 flex shrink-0 items-center justify-between">
                     <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                       Generation Settings
                     </h2>
@@ -1109,60 +1109,64 @@ export default function HomePage() {
                     </button>
                   </div>
 
-                  <ControlsPanel
-                    settings={settings}
-                    onChange={updateSettings}
-                    onOpenKeys={() => setKeysOpen(true)}
-                    disabled={busy}
-                  />
+                  <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+                    <ControlsPanel
+                      settings={settings}
+                      onChange={updateSettings}
+                      onOpenKeys={() => setKeysOpen(true)}
+                      disabled={busy}
+                    />
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={generateAll}
-                    disabled={!images.length || busy || !!uploadProgress}
-                    className="mt-4 w-full rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition hover:opacity-95 disabled:opacity-40"
-                  >
-                    {busy
-                      ? "Generating…"
-                      : failedCount > 0 && images.every((x) => x.status !== "pending")
-                        ? `↻ Retry Failed (${failedCount})`
-                        : "✦ Generate Metadata"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (busy) {
-                        stopRequested.current = true;
-                        abortControllerRef.current?.abort();
-                        pushLog("Generation বন্ধ করা হচ্ছে…");
-                      }
-                    }}
-                    disabled={!busy}
-                    className="mt-2 w-full rounded-xl border border-rose-200 bg-white px-6 py-2.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-rose-900 dark:bg-zinc-900 dark:hover:bg-rose-950/30"
-                  >
-                    ■ Stop Generating
-                  </button>
-
-                  <div className="mt-2.5 flex flex-wrap gap-2">
+                  <div className="mt-2.5 shrink-0 border-t border-slate-100 pt-2.5 dark:border-zinc-800">
                     <button
                       type="button"
-                      onClick={() => {
-                        images.forEach((x) => URL.revokeObjectURL(x.previewUrl));
-                        setImages([]);
-                        setSelectedId(null);
-                        setNotice("");
-                      }}
-                      disabled={!images.length || busy}
-                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      onClick={generateAll}
+                      disabled={!images.length || busy || !!uploadProgress}
+                      className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-indigo-600/20 transition hover:opacity-95 disabled:opacity-40"
                     >
-                      Clear All
+                      {busy
+                        ? "Generating…"
+                        : failedCount > 0 && images.every((x) => x.status !== "pending")
+                          ? `↻ Retry Failed (${failedCount})`
+                          : "✦ Generate Metadata"}
                     </button>
+
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (busy) {
+                            stopRequested.current = true;
+                            abortControllerRef.current?.abort();
+                            pushLog("Generation বন্ধ করা হচ্ছে…");
+                          }
+                        }}
+                        disabled={!busy}
+                        className="flex-1 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-rose-900 dark:bg-zinc-900 dark:hover:bg-rose-950/30"
+                      >
+                        ■ Stop
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          images.forEach((x) => URL.revokeObjectURL(x.previewUrl));
+                          setImages([]);
+                          setSelectedId(null);
+                          setNotice("");
+                        }}
+                        disabled={!images.length || busy}
+                        className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => downloadPlatformCsv(images, settings.platform)}
                       disabled={!exportableCount}
-                      className="flex-1 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-40"
+                      className="mt-2 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-40"
                     >
                       ↓ Export CSV ({exportableCount})
                     </button>

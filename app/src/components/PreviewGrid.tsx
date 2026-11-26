@@ -286,7 +286,7 @@ export default function PreviewGrid({
                         </div>
                         <textarea
                           value={img.title || ""}
-                          rows={2}
+                          rows={3}
                           onChange={(e) => onUpdate(img.id, { title: e.target.value })}
                           className={`${fieldClass} font-semibold`}
                         />
