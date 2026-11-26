@@ -10,6 +10,7 @@ type Props = {
 
 export default function ResultCard({ image, onUpdate }: Props) {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [dims, setDims] = useState<{ id: string; w: number; h: number } | null>(null);
 
   function copy(field: string, text: string) {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -60,16 +61,24 @@ export default function ResultCard({ image, onUpdate }: Props) {
 
   return (
     <div className="mt-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs transition-colors dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
           {image.previewUrl ? (
-            <img
-              src={image.previewUrl}
-              className="h-12 w-12 shrink-0 rounded-xl object-cover"
-              alt={image.file.name}
-            />
+            <div className="inline-flex max-w-[220px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-slate-50 dark:border-zinc-700 dark:bg-zinc-800">
+              <img
+                src={image.previewUrl}
+                onLoad={(e) => {
+                  const el = e.currentTarget;
+                  if (el.naturalWidth && el.naturalHeight) {
+                    setDims({ id: image.id, w: el.naturalWidth, h: el.naturalHeight });
+                  }
+                }}
+                className="block h-auto max-h-[160px] w-auto max-w-[220px] object-contain"
+                alt={image.file.name}
+              />
+            </div>
           ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xs font-bold uppercase text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xs font-bold uppercase text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
               {image.assetType || "FILE"}
             </div>
           )}
@@ -77,9 +86,16 @@ export default function ResultCard({ image, onUpdate }: Props) {
             <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
               {image.file.name}
             </p>
-            <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              ✓ Ready for export
-            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                ✓ Ready for export
+              </span>
+              {dims && dims.id === image.id && (
+                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">
+                  {dims.w} × {dims.h} px
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

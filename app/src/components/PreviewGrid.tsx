@@ -163,17 +163,17 @@ export default function PreviewGrid({
                 </td>
 
                 <td className="px-3.5 py-3">
-                  <div className="relative h-24 w-48 overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800">
+                  <div className="relative inline-flex min-h-[72px] min-w-[96px] max-w-[208px] items-center justify-center overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/80 dark:border-zinc-700 dark:bg-zinc-800/80">
                     {img.previewUrl ? (
                       <img
                         src={img.previewUrl}
                         alt={img.file.name}
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover"
+                        className="block h-auto max-h-[180px] w-auto max-w-[208px] object-contain"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs font-bold text-slate-400">
+                      <div className="flex h-24 w-44 items-center justify-center text-xs font-bold text-slate-400">
                         {(img.assetType || "IMG").toUpperCase()}
                       </div>
                     )}
