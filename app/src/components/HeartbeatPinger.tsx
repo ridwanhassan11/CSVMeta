@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export default function HeartbeatPinger() {
+  const pathname = usePathname();
+
   useEffect(() => {
+    if (pathname === "/login") return;
+
     function ping() {
-      fetch("/api/heartbeat", { method: "POST" }).catch(() => {});
+      fetch("/api/auth/heartbeat", { method: "POST" }).catch(() => {});
     }
 
-    ping(); // পেজ লোড হওয়ার সাথে সাথে একবার
-    const interval = setInterval(ping, 30_000); // এরপর প্রতি ৩০ সেকেন্ডে
+    ping();
+    const interval = setInterval(ping, 30_000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [pathname]);
 
   return null;
 }
