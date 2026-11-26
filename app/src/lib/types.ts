@@ -42,6 +42,7 @@ export type GenerationSettings = {
   extraInstructions: string;
   parallel: boolean;
   delayMs: number;
+  smartFallback: boolean;
 };
 
 export const DEFAULT_SETTINGS: GenerationSettings = {
@@ -58,6 +59,7 @@ export const DEFAULT_SETTINGS: GenerationSettings = {
   extraInstructions: "",
   parallel: false,
   delayMs: 2000,
+  smartFallback: true,
 };
 
 export const PROVIDER_LABELS: Record<Provider, string> = {

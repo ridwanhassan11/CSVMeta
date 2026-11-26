@@ -208,9 +208,16 @@ export default function ControlsPanel({
               </button>
             ))}
           </div>
-          <p className="mt-2 rounded-lg bg-violet-50 px-2.5 py-2 text-[10px] text-violet-700 dark:bg-violet-950/30 dark:text-violet-300">
-            ✓ Auto key-rotation &amp; rate-limit recovery enabled
-          </p>
+          <label className="mt-2.5 flex cursor-pointer items-center justify-between rounded-lg bg-violet-50 px-2.5 py-2 text-[11px] font-medium text-violet-800 dark:bg-violet-950/30 dark:text-violet-200">
+            <span>Auto-fallback model &amp; rotate keys</span>
+            <input
+              type="checkbox"
+              checked={settings.smartFallback ?? true}
+              onChange={(e) => onChange({ smartFallback: e.target.checked })}
+              disabled={disabled}
+              className="h-4 w-4 accent-violet-600"
+            />
+          </label>
         </div>
       </div>
     </div>

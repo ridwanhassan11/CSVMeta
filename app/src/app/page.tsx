@@ -210,23 +210,14 @@ export default function HomePage() {
         pushLog("শুধুমাত্র PNG, JPG, JPEG বা WEBP ছবি নির্বাচন করুন।");
         return;
       }
-      const remainingSlots = Math.max(0, 100 - images.length);
-      if (remainingSlots === 0) {
-        pushLog("একসাথে সর্বোচ্চ ১০০টি ছবি যোগ করা যায়। কিছু ছবি Clear করে আবার চেষ্টা করুন।");
-        return;
-      }
-      const added = valid.slice(0, remainingSlots).map((file) => ({
+      const added = valid.map((file) => ({
         id: crypto.randomUUID(),
         file,
         previewUrl: URL.createObjectURL(file),
         status: "pending" as const,
       }));
       setImages((xs) => [...xs, ...added]);
-      if (valid.length > remainingSlots) {
-        pushLog(`${added.length}টি ছবি যোগ হয়েছে (সর্বোচ্চ সীমা ১০০টি)।`);
-      } else {
-        setNotice(`${added.length}টি ছবি আপলোড হয়েছে।`);
-      }
+      setNotice(`${added.length}টি ছবি আপলোড হয়েছে (মোট ${images.length + added.length}টি)।`);
     },
     [images.length, pushLog]
   );
@@ -244,16 +235,26 @@ export default function HomePage() {
     async (
       image: ImageItem,
       apiKey: string,
-      signal?: AbortSignal
+      signal?: AbortSignal,
+      geminiModelOverride?: string
     ): Promise<{ ok: true } | { ok: false; failure: GenerateFailure }> => {
       updateImage(image.id, { status: "loading", error: undefined });
+
+      const reqController = new AbortController();
+      let timedOut = false;
+      const timeoutId = setTimeout(() => {
+        timedOut = true;
+        reqController.abort();
+      }, 65_000);
+      const onParentAbort = () => reqController.abort();
+      signal?.addEventListener("abort", onParentAbort, { once: true });
 
       try {
         const body = new FormData();
         const uploadFile = await prepareImageForUpload(image.file);
         body.append("file", uploadFile, uploadFile.name);
         body.append("provider", settings.provider);
-        body.append("geminiModel", settings.geminiModel);
+        body.append("geminiModel", geminiModelOverride || settings.geminiModel);
         body.append("groqModel", settings.groqModel);
         body.append("mistralModel", settings.mistralModel);
         body.append("openaiModel", settings.openaiModel);
@@ -265,7 +266,11 @@ export default function HomePage() {
         body.append("keywordsCount", String(settings.keywordsCount));
         body.append("extraInstructions", settings.extraInstructions);
 
-        const res = await fetch("/api/generate", { method: "POST", body, signal });
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          body,
+          signal: reqController.signal,
+        });
         const responseText = await res.text();
 
         let result: Record<string, unknown>;
@@ -331,6 +336,16 @@ export default function HomePage() {
         return { ok: true };
       } catch (e: unknown) {
         if (e instanceof DOMException && e.name === "AbortError") {
+          if (timedOut && !signal?.aborted) {
+            return {
+              ok: false,
+              failure: {
+                message: "Request timed out after 65s. Retrying...",
+                code: "NETWORK_ERROR",
+                status: 408,
+              },
+            };
+          }
           updateImage(image.id, { status: "pending", error: undefined });
           return {
             ok: false,
@@ -346,6 +361,9 @@ export default function HomePage() {
             status: 0,
           },
         };
+      } finally {
+        clearTimeout(timeoutId);
+        signal?.removeEventListener("abort", onParentAbort);
       }
     },
     [settings, updateImage]
@@ -378,6 +396,18 @@ export default function HomePage() {
 
     const disabledKeys = new Set<number>();
     const keyCooldownUntil = new Map<number, number>();
+    const keyModelIndex = new Map<number, number>();
+    const geminiFallbackChain = Array.from(
+      new Set([
+        settings.geminiModel,
+        "gemini-3.5-flash-lite",
+        "gemini-3.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash",
+      ])
+    );
+    const useSmartFallback = settings.provider === "gemini" && (settings.smartFallback ?? true);
+
     let startPos = Math.max(
       0,
       providerKeys.findIndex((k) => k.index === (activeKeys[settings.provider] ?? 0))
@@ -395,7 +425,7 @@ export default function HomePage() {
         const item = pending[i];
         let imageDone = false;
         let waitCycles = 0;
-        const maxWaitCycles = 4;
+        const maxWaitCycles = 6;
         let lastImgError = "";
 
         while (!imageDone && !stopRequested.current) {
@@ -419,13 +449,23 @@ export default function HomePage() {
             const coolUntil = keyCooldownUntil.get(candidate.index) || 0;
             if (coolUntil > Date.now()) continue;
 
+            const modelIdx = keyModelIndex.get(candidate.index) ?? 0;
+            const activeModel = useSmartFallback
+              ? geminiFallbackChain[modelIdx] || settings.geminiModel
+              : undefined;
+
             triedReadyKey = true;
             setActiveKeys((cur) => ({ ...cur, [settings.provider]: candidate.index }));
             setNotice(
-              `ছবি ${i + 1}/${pending.length} · Key ${candidate.index + 1}/${providerKeys.length}: ${item.file.name}`
+              `ছবি ${i + 1}/${pending.length} · Key ${candidate.index + 1}/${providerKeys.length}${activeModel ? ` (${activeModel})` : ""}: ${item.file.name}`
             );
 
-            const res = await requestGenerateOne(item, candidate.key, controller.signal);
+            const res = await requestGenerateOne(
+              item,
+              candidate.key,
+              controller.signal,
+              activeModel
+            );
             if (res.ok) {
               imageDone = true;
               completedInRun++;
@@ -447,20 +487,26 @@ export default function HomePage() {
               continue;
             }
 
-            if (fail.code === "QUOTA_EXHAUSTED") {
+            if (fail.code === "QUOTA_EXHAUSTED" || fail.code === "MODEL_NOT_FOUND") {
+              if (useSmartFallback && modelIdx + 1 < geminiFallbackChain.length) {
+                const nextModel = geminiFallbackChain[modelIdx + 1];
+                keyModelIndex.set(candidate.index, modelIdx + 1);
+                pushLog(
+                  `Key ${candidate.index + 1}-এ ${activeModel} সীমা/সমস্যা হওয়ায় ${nextModel} মডেলে সুইচ করা হচ্ছে...`
+                );
+                offset--; // retry same key immediately with fallback model
+                continue;
+              }
               disabledKeys.add(candidate.index);
               pushLog(`Key ${candidate.index + 1} quota শেষ: ${fail.message}`);
+              if (fail.code === "MODEL_NOT_FOUND" && !useSmartFallback) {
+                globalStopReason = fail.message;
+                break;
+              }
               continue;
             }
 
-            if (fail.code === "MODEL_NOT_FOUND") {
-              globalStopReason = fail.message;
-              disabledKeys.add(candidate.index);
-              break;
-            }
-
             if (fail.code === "CONTENT_BLOCKED" || fail.code === "CLIENT_IMAGE_ERROR") {
-              // Skip only this image and continue with remaining images
               updateImage(item.id, { status: "error", error: fail.message });
               failedInRun++;
               imageDone = true;
@@ -469,19 +515,17 @@ export default function HomePage() {
             }
 
             if (fail.code === "RATE_LIMITED" || fail.status === 429) {
-              const waitSec = Math.min(60, Math.max(8, fail.retryAfterSeconds ?? 15));
+              const waitSec = Math.min(60, Math.max(20, fail.retryAfterSeconds ?? 20));
               keyCooldownUntil.set(candidate.index, Date.now() + waitSec * 1000);
               startPos = (pos + 1) % providerKeys.length;
               continue;
             }
 
             if (fail.code === "INVALID_JSON" || fail.status >= 500 || fail.code === "NETWORK_ERROR") {
-              // Retry once on another key or short pause, otherwise fail just this image and move on
               keyCooldownUntil.set(candidate.index, Date.now() + 3000);
               continue;
             }
 
-            // Other 4xx image-specific errors: mark this image error and move to next image
             updateImage(item.id, { status: "error", error: fail.message });
             failedInRun++;
             imageDone = true;
@@ -490,7 +534,6 @@ export default function HomePage() {
 
           if (imageDone || stopRequested.current || globalStopReason) break;
 
-          // Check if any usable key still exists
           const stillUsable = providerKeys.filter((k) => !disabledKeys.has(k.index));
           if (!stillUsable.length) {
             globalStopReason =
@@ -513,9 +556,12 @@ export default function HomePage() {
           const soonestReady = Math.min(
             ...stillUsable.map((k) => keyCooldownUntil.get(k.index) || Date.now())
           );
-          const waitMs = triedReadyKey
-            ? Math.min(20_000, 3_000 * waitCycles)
-            : Math.min(60_000, Math.max(4_000, soonestReady - Date.now()));
+          const waitMs =
+            waitCycles >= 3
+              ? 60_000
+              : triedReadyKey
+                ? Math.min(25_000, 5_000 * waitCycles)
+                : Math.min(60_000, Math.max(5_000, soonestReady - Date.now()));
 
           pushLog(
             `Rate limit-এর কারণে ${Math.ceil(waitMs / 1000)} সেকেন্ড অপেক্ষা করা হচ্ছে (${waitCycles}/${maxWaitCycles})...`
@@ -524,7 +570,6 @@ export default function HomePage() {
         }
 
         if (stopRequested.current || globalStopReason) {
-          // Restore unfinished loading item back to pending if stopped globally
           if (item.status === "loading") {
             updateImage(item.id, { status: "pending" });
           }
@@ -819,7 +864,7 @@ export default function HomePage() {
                         Choose Images
                       </span>
                       <span className="mt-2 text-xs text-slate-400">
-                        PNG, JPG, WEBP • Up to 100 images
+                        PNG, JPG, WEBP • Unlimited batch supported
                       </span>
                       {images.length > 0 && (
                         <span className="absolute right-3 top-3 rounded-full bg-violet-700 px-3 py-1 text-xs font-semibold text-white">

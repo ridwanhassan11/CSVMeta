@@ -78,7 +78,13 @@ export default function PreviewGrid({
 
                 <td className="px-3 py-3">
                   <div className="relative h-28 w-full max-w-[260px] overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
-                    <img src={img.previewUrl} alt={img.file.name} className="h-full w-full object-cover" />
+                    <img
+                      src={img.previewUrl}
+                      alt={img.file.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
                     <span
                       className={`absolute left-1 top-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusStyle[img.status]}`}
                     >
