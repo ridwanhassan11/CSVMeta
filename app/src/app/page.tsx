@@ -171,16 +171,19 @@ export default function HomePage() {
       // Proportional total duration: fast for few files (~0.4-1.5s), scales gently for many, capped at 5.5s
       const targetTotalMs =
         total === 1
-          ? 380
-          : total <= 10
-            ? total * 150
-            : Math.min(5500, 1500 + (total - 10) * 45);
-      const chunkSize = total <= 12 ? 1 : Math.ceil(total / 24);
+          ? 350
+          : total <= 12
+            ? total * 130
+            : Math.min(5500, 1560 + (total - 12) * 38);
+      // Small chunks ensure files appear gradually behind the dark overlay
+      const chunkSize = total <= 40 ? 1 : total <= 100 ? 2 : 3;
       const totalSteps = Math.ceil(total / chunkSize);
       const targetStepMs = targetTotalMs / totalSteps;
 
       setUploadProgress({ done: 0, total, fileName: valid[0].name });
       setNotice(`আপলোড হচ্ছে 0/${total}...`);
+      // Paint dark upload overlay immediately before decoding images
+      await sleep(24);
 
       try {
         let done = 0;
@@ -214,10 +217,9 @@ export default function HomePage() {
           setNotice(`আপলোড হচ্ছে ${done}/${total}: ${lastName}`);
 
           const elapsed = performance.now() - startedAt;
-          const remaining = Math.max(0, targetStepMs - elapsed);
-          if (remaining > 8) {
-            await sleep(remaining);
-          }
+          // Always yield briefly so each gradual batch paints visibly on screen
+          const waitMs = Math.max(16, targetStepMs - elapsed);
+          await sleep(waitMs);
         }
         setNotice(`${total}টি ফাইল সফলভাবে আপলোড হয়েছে।`);
       } finally {
@@ -973,92 +975,69 @@ export default function HomePage() {
                   </div>
 
                   <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-                    {uploadProgress ? (
-                      <div className="flex h-[96px] flex-col justify-center rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 px-5 dark:border-indigo-700 dark:bg-indigo-950/20">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="truncate text-indigo-700 dark:text-indigo-300">
-                            Uploading {uploadProgress.done} / {uploadProgress.total} files ·{" "}
-                            <span className="font-normal text-slate-500 dark:text-zinc-400">
-                              {uploadProgress.fileName}
-                            </span>
-                          </span>
-                          <span className="ml-2 shrink-0 text-indigo-600 dark:text-indigo-300">
-                            {Math.round((uploadProgress.done / uploadProgress.total) * 100)}%
-                          </span>
-                        </div>
-                        <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-indigo-100 dark:bg-zinc-800">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-indigo-600 via-blue-500 to-emerald-500 transition-all duration-150"
-                            style={{
-                              width: `${Math.round((uploadProgress.done / uploadProgress.total) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.currentTarget.classList.add("border-indigo-500", "bg-indigo-50/70");
-                        }}
-                        onDragLeave={(e) => {
-                          e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
-                          const dropped = Array.from(e.dataTransfer.files).filter(isSupportedAsset);
-                          if (dropped.length) void addFiles(dropped);
-                        }}
-                        className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 transition hover:border-indigo-400 hover:bg-indigo-50/40 dark:border-zinc-700 dark:bg-zinc-950/50 dark:hover:border-indigo-500 ${
-                          images.length > 0
-                            ? "h-[82px] flex-row justify-between px-5 text-left"
-                            : "h-[240px] flex-col text-center"
-                        }`}
-                        aria-label="Upload images and vectors"
-                      >
-                        {images.length > 0 ? (
-                          <>
-                            <div className="flex min-w-0 items-center gap-3 pr-3">
-                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
-                                ⇧
-                              </span>
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-slate-800 dark:text-white">
-                                  Add more files ({images.length} loaded)
-                                </p>
-                                <p className="truncate text-xs text-slate-500 dark:text-zinc-400">
-                                  Drag &amp; drop or click to append PNG, JPG, WEBP, SVG, EPS
-                                </p>
-                              </div>
-                            </div>
-                            <span className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm dark:bg-indigo-600">
-                              + Add Files
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600 transition group-hover:scale-105 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={Boolean(uploadProgress)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.add("border-indigo-500", "bg-indigo-50/70");
+                      }}
+                      onDragLeave={(e) => {
+                        e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.classList.remove("border-indigo-500", "bg-indigo-50/70");
+                        const dropped = Array.from(e.dataTransfer.files).filter(isSupportedAsset);
+                        if (dropped.length) void addFiles(dropped);
+                      }}
+                      className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 transition hover:border-indigo-400 hover:bg-indigo-50/40 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950/50 dark:hover:border-indigo-500 ${
+                        images.length > 0
+                          ? "h-[82px] flex-row justify-between px-5 text-left"
+                          : "h-[240px] flex-col text-center"
+                      }`}
+                      aria-label="Upload images and vectors"
+                    >
+                      {images.length > 0 ? (
+                        <>
+                          <div className="flex min-w-0 items-center gap-3 pr-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
                               ⇧
                             </span>
-                            <span className="text-base font-bold text-slate-800 dark:text-white">
-                              Upload your images &amp; vectors
-                            </span>
-                            <span className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
-                              Drag &amp; drop files here, or click to browse
-                            </span>
-                            <span className="mt-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm">
-                              Choose Files
-                            </span>
-                            <span className="mt-2 text-xs text-slate-400">
-                              PNG, JPG, WEBP, SVG, EPS • Unlimited batch supported
-                            </span>
-                          </>
-                        )}
-                      </button>
-                    )}
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-slate-800 dark:text-white">
+                                Add more files ({images.length} loaded)
+                              </p>
+                              <p className="truncate text-xs text-slate-500 dark:text-zinc-400">
+                                Drag &amp; drop or click to append PNG, JPG, WEBP, SVG, EPS
+                              </p>
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm dark:bg-indigo-600">
+                            + Add Files
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-2xl text-indigo-600 transition group-hover:scale-105 dark:bg-indigo-950/60 dark:text-indigo-300">
+                            ⇧
+                          </span>
+                          <span className="text-base font-bold text-slate-800 dark:text-white">
+                            Upload your images &amp; vectors
+                          </span>
+                          <span className="mt-1 text-sm text-slate-500 dark:text-zinc-400">
+                            Drag &amp; drop files here, or click to browse
+                          </span>
+                          <span className="mt-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm">
+                            Choose Files
+                          </span>
+                          <span className="mt-2 text-xs text-slate-400">
+                            PNG, JPG, WEBP, SVG, EPS • Unlimited batch supported
+                          </span>
+                        </>
+                      )}
+                    </button>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -1094,8 +1073,8 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3 shadow-2xs min-[900px]:sticky min-[900px]:top-[60px] min-[900px]:flex min-[900px]:max-h-[calc(100vh-72px)] min-[900px]:flex-col min-[900px]:self-start dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="mb-2 flex shrink-0 items-center justify-between">
+                <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-2xs min-[900px]:sticky min-[900px]:top-[60px] min-[900px]:flex min-[900px]:h-[calc(100vh-74px)] min-[900px]:flex-col min-[900px]:self-start dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="mb-2.5 flex shrink-0 items-center justify-between">
                     <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                       Generation Settings
                     </h2>
@@ -1109,7 +1088,7 @@ export default function HomePage() {
                     </button>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+                  <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-0.5">
                     <ControlsPanel
                       settings={settings}
                       onChange={updateSettings}
@@ -1118,7 +1097,7 @@ export default function HomePage() {
                     />
                   </div>
 
-                  <div className="mt-2.5 shrink-0 border-t border-slate-100 pt-2.5 dark:border-zinc-800">
+                  <div className="mt-3 shrink-0 border-t border-slate-100 pt-3 dark:border-zinc-800">
                     <button
                       type="button"
                       onClick={generateAll}
@@ -1247,6 +1226,51 @@ export default function HomePage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {uploadProgress && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-[2px]"
+          aria-live="polite"
+          role="status"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300">
+                  <span className="inline-block animate-pulse">⇧</span>
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Uploading Files…
+                  </h2>
+                  <p className="truncate text-xs text-slate-500 dark:text-zinc-400">
+                    {uploadProgress.fileName}
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                {uploadProgress.done} / {uploadProgress.total}
+              </span>
+            </div>
+
+            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-zinc-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-indigo-600 via-blue-500 to-emerald-500 transition-all duration-150"
+                style={{
+                  width: `${Math.round((uploadProgress.done / uploadProgress.total) * 100)}%`,
+                }}
+              />
+            </div>
+
+            <div className="mt-2 flex items-center justify-between text-[11px] font-medium text-slate-500 dark:text-zinc-400">
+              <span>ফাইলগুলো একে একে লোড হচ্ছে…</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                {Math.round((uploadProgress.done / uploadProgress.total) * 100)}%
+              </span>
             </div>
           </div>
         </div>
