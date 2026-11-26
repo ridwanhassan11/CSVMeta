@@ -150,19 +150,26 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    try {
-      const k = localStorage.getItem(KEY_STORAGE);
-      const h = localStorage.getItem(HISTORY_STORAGE);
-      const s = localStorage.getItem(SETTINGS_STORAGE);
-      const a = localStorage.getItem(ACTIVE_KEYS_STORAGE);
-      if (k) setSavedKeys({ ...EMPTY_KEYS, ...JSON.parse(k) });
-      if (h) setHistory(JSON.parse(h));
-      if (s) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(s) });
-      if (a) setActiveKeys(JSON.parse(a));
-    } catch {
-      setNotice("Could not load saved browser data.");
-    }
-    setHydrated(true);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      try {
+        const k = localStorage.getItem(KEY_STORAGE);
+        const h = localStorage.getItem(HISTORY_STORAGE);
+        const s = localStorage.getItem(SETTINGS_STORAGE);
+        const a = localStorage.getItem(ACTIVE_KEYS_STORAGE);
+        if (k) setSavedKeys({ ...EMPTY_KEYS, ...JSON.parse(k) });
+        if (h) setHistory(JSON.parse(h));
+        if (s) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(s) });
+        if (a) setActiveKeys(JSON.parse(a));
+      } catch {
+        setNotice("Could not load saved browser data.");
+      }
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

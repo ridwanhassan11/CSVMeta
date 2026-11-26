@@ -66,29 +66,29 @@ export async function deleteUserAccount(email: string) {
 }
 
 export async function getUserActivity(email: string): Promise<ActivityEntry[]> {
-  const raw = (await redis.lrange(`activity:${email}`, 0, 49)) as string[];
+  const raw = (await redis.lrange(`activity:${email}`, 0, 49)) as Array<string | ActivityEntry>;
   return raw
     .map((r) => {
       try {
-        return typeof r === "string" ? JSON.parse(r) : (r as any);
+        return typeof r === "string" ? (JSON.parse(r) as ActivityEntry) : r;
       } catch {
         return null;
       }
     })
-    .filter(Boolean);
+    .filter((entry): entry is ActivityEntry => entry !== null);
 }
 
 export async function getGlobalActivity(): Promise<ActivityEntry[]> {
-  const raw = (await redis.lrange("activity_log", 0, 99)) as string[];
+  const raw = (await redis.lrange("activity_log", 0, 99)) as Array<string | ActivityEntry>;
   return raw
     .map((r) => {
       try {
-        return typeof r === "string" ? JSON.parse(r) : (r as any);
+        return typeof r === "string" ? (JSON.parse(r) as ActivityEntry) : r;
       } catch {
         return null;
       }
     })
-    .filter(Boolean);
+    .filter((entry): entry is ActivityEntry => entry !== null);
 }
 
 export async function updateHeartbeat(email: string, location?: string) {

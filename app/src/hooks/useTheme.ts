@@ -8,10 +8,17 @@ export function useTheme() {
   const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
-    const stored = localStorage.getItem("theme") as Theme | null;
-    const initial = stored || "light";
-    setThemeState(initial);
-    document.documentElement.classList.toggle("dark", initial === "dark");
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const stored = localStorage.getItem("theme") as Theme | null;
+      const initial = stored || "light";
+      setThemeState(initial);
+      document.documentElement.classList.toggle("dark", initial === "dark");
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const setTheme = useCallback((next: Theme) => {

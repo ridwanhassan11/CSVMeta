@@ -29,8 +29,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!user?.email) return false;
 
       try {
-        const record = await redis.hgetall(`user:${user.email}`);
-        if (record && (record as any).blocked === "true") {
+        const record = (await redis.hgetall(`user:${user.email}`)) as Record<string, unknown> | null;
+        if (record && record.blocked === "true") {
           return false;
         }
       } catch (err) {
@@ -57,7 +57,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
     async signOut(message) {
-      const email = (message as any)?.token?.email;
+      const email = (message as { token?: { email?: string } })?.token?.email;
       if (!email) return;
       try {
         await redis.hset(`user:${email}`, {
