@@ -11,6 +11,7 @@ import {
   DEFAULT_SETTINGS,
   PLATFORMS,
   PROVIDER_LABELS,
+  getCurrentModelLabel,
   type GenerationSettings,
   type Provider,
 } from "@/lib/types";
@@ -829,6 +830,31 @@ export default function HomePage() {
             ) : (
               <div className="grid items-start gap-3 min-[900px]:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)_minmax(0,0.95fr)]">
                 <div className="min-w-0 flex flex-col gap-3 min-[900px]:col-span-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#e8e1f6] bg-white px-4 py-2.5 shadow-[0_2px_8px_rgba(91,33,182,.04)] dark:border-slate-800 dark:bg-slate-900">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="rounded-full bg-violet-100 px-2.5 py-1 font-semibold text-violet-800 dark:bg-violet-950/60 dark:text-violet-300">
+                        {PROVIDER_LABELS[settings.provider]} · {getCurrentModelLabel(settings)}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        Export: {activePlatformLabel}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setKeysOpen(true)}
+                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                        (savedKeys[settings.provider] || []).length > 0
+                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          : "bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-950/50 dark:text-amber-300"
+                      }`}
+                    >
+                      {(savedKeys[settings.provider] || []).length > 0
+                        ? `✓ ${(savedKeys[settings.provider] || []).length} API Key(s) Ready`
+                        : "⚠ Add API Key"}
+                    </button>
+                  </div>
+
                   <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#e8e1f6] bg-white p-2.5 shadow-[0_2px_8px_rgba(91,33,182,.08)] dark:border-slate-800 dark:bg-slate-900">
                     <button
                       type="button"
@@ -848,28 +874,50 @@ export default function HomePage() {
                         );
                         if (dropped.length) addFiles(dropped);
                       }}
-                      className="group relative flex h-[240px] w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] text-center transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800"
+                      className={`group relative flex w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-violet-200 bg-[#faf8ff] transition hover:border-violet-500 hover:bg-violet-50 dark:border-violet-900 dark:bg-slate-800/70 dark:hover:bg-slate-800 ${
+                        images.length > 0
+                          ? "h-[82px] flex-row justify-between px-5 text-left"
+                          : "h-[240px] flex-col text-center"
+                      }`}
                       aria-label="Upload images"
                     >
-                      <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-2xl text-violet-700 transition group-hover:scale-105 dark:bg-violet-950 dark:text-violet-300">
-                        ⇧
-                      </span>
-                      <span className="text-base font-bold text-slate-800 dark:text-white">
-                        Upload your images
-                      </span>
-                      <span className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Drag &amp; drop images here, or click to browse
-                      </span>
-                      <span className="mt-3 rounded-lg bg-violet-700 px-5 py-2 text-sm font-semibold text-white shadow-sm">
-                        Choose Images
-                      </span>
-                      <span className="mt-2 text-xs text-slate-400">
-                        PNG, JPG, WEBP • Unlimited batch supported
-                      </span>
-                      {images.length > 0 && (
-                        <span className="absolute right-3 top-3 rounded-full bg-violet-700 px-3 py-1 text-xs font-semibold text-white">
-                          {images.length} uploaded
-                        </span>
+                      {images.length > 0 ? (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-lg text-violet-700 dark:bg-violet-950 dark:text-violet-300">
+                              ⇧
+                            </span>
+                            <div>
+                              <p className="text-sm font-bold text-slate-800 dark:text-white">
+                                Add more images ({images.length} loaded)
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Drag &amp; drop or click to append PNG, JPG, WEBP
+                              </p>
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-lg bg-violet-700 px-4 py-2 text-xs font-semibold text-white shadow-sm">
+                            + Add Images
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-2xl text-violet-700 transition group-hover:scale-105 dark:bg-violet-950 dark:text-violet-300">
+                            ⇧
+                          </span>
+                          <span className="text-base font-bold text-slate-800 dark:text-white">
+                            Upload your images
+                          </span>
+                          <span className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            Drag &amp; drop images here, or click to browse
+                          </span>
+                          <span className="mt-3 rounded-lg bg-violet-700 px-5 py-2 text-sm font-semibold text-white shadow-sm">
+                            Choose Images
+                          </span>
+                          <span className="mt-2 text-xs text-slate-400">
+                            PNG, JPG, WEBP • Unlimited batch supported
+                          </span>
+                        </>
                       )}
                     </button>
                     <input
