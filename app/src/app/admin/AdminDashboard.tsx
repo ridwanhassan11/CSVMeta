@@ -215,11 +215,22 @@ export default function AdminDashboard({
         {!redisStatus.ok && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50/90 p-5 text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200">
             <p className="font-semibold">ডাটাবেস (Upstash Redis) সংযুক্ত নেই বা কানেকশন ত্রুটি হয়েছে</p>
-            <p className="mt-1 text-xs leading-relaxed opacity-90">{redisStatus.error}</p>
-            <p className="mt-2 text-xs opacity-80">
-              URL পাওয়া গেছে: <b>{redisStatus.hasUrl ? "হ্যাঁ" : "না"}</b> · Token পাওয়া গেছে:{" "}
-              <b>{redisStatus.hasToken ? "হ্যাঁ" : "না"}</b> — Vercel Dashboard → Storage / Environment Variables-এ{" "}
-              <code>KV_REST_API_URL</code> ও <code>KV_REST_API_TOKEN</code> (অথবা Upstash Redis ইন্টিগ্রেশন) সেট করুন।
+            <p className="mt-1 break-all font-mono text-xs opacity-90">{redisStatus.error}</p>
+            <p className="mt-2 text-xs opacity-85">
+              URL: <b>{redisStatus.hasUrl ? "হ্যাঁ" : "না"}</b> · Token:{" "}
+              <b>{redisStatus.hasToken ? "হ্যাঁ" : "না"}</b>
+              {redisStatus.host ? (
+                <>
+                  {" "}
+                  · Host:{" "}
+                  <code className="rounded bg-rose-100 px-1 py-0.5 dark:bg-rose-900/50">
+                    {`${redisStatus.protocol || ""}//${redisStatus.host}`}
+                  </code>
+                </>
+              ) : null}
+            </p>
+            <p className="mt-1.5 text-xs opacity-80">
+              যদি Upstash ডাটাবেসটি ডিলিট/বন্ধ হয়ে গিয়ে থাকে (ENOTFOUND) বা টোকেন ভুল হয়, তাহলে Vercel Dashboard → Storage → Create Database (Upstash Redis) করে নতুন করে প্রজেক্টে Connect করুন এবং Redeploy দিন।
             </p>
           </div>
         )}

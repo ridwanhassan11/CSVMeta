@@ -39,8 +39,21 @@ export type RedisStatus = {
   configured: boolean;
   hasUrl: boolean;
   hasToken: boolean;
+  host?: string;
+  protocol?: string;
   error?: string;
 };
+
+function describeError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err || "Unknown error");
+  const cause = (err as Error & { cause?: unknown }).cause;
+  if (cause && typeof cause === "object") {
+    const c = cause as { code?: string; message?: string; hostname?: string };
+    const details = [c.code, c.hostname, c.message].filter(Boolean).join(" · ");
+    if (details) return `${err.message} (${details})`;
+  }
+  return err.message;
+}
 
 async function fetchUserRecords(emails: string[]): Promise<Array<Record<string, string> | null>> {
   const redis = getRedis();
@@ -158,6 +171,8 @@ export async function getAdminSnapshot(): Promise<{
         configured: false,
         hasUrl: cfg.hasUrl,
         hasToken: cfg.hasToken,
+        host: cfg.host,
+        protocol: cfg.protocol,
         error: "Upstash Redis এনভায়রনমেন্ট ভ্যারিয়েবল (KV_REST_API_URL / KV_REST_API_TOKEN) Vercel-এ সেট করা নেই।",
       },
     };
@@ -178,11 +193,25 @@ export async function getAdminSnapshot(): Promise<{
         configured: true,
         hasUrl: cfg.hasUrl,
         hasToken: cfg.hasToken,
+        host: cfg.host,
+        protocol: cfg.protocol,
       },
     };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Redis connection error";
-    console.error("Admin snapshot failed:", err);
+    let msg = describeError(err);
+    try {
+      const probe = await fetch(`${cfg.url}/ping`, {
+        headers: { Authorization: `Bearer ${cfg.token}` },
+        cache: "no-store",
+      });
+      if (!probe.ok) {
+        msg = `${msg} · HTTP ${probe.status} ${probe.statusText}`;
+      }
+    } catch (probeErr: unknown) {
+      msg = describeError(probeErr);
+    }
+
+    console.error("Admin snapshot failed:", msg);
     return {
       users: [],
       activity: [],
@@ -192,6 +221,8 @@ export async function getAdminSnapshot(): Promise<{
         configured: true,
         hasUrl: cfg.hasUrl,
         hasToken: cfg.hasToken,
+        host: cfg.host,
+        protocol: cfg.protocol,
         error: msg,
       },
     };
