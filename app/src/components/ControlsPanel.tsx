@@ -2,8 +2,6 @@
 
 import {
   PLATFORMS,
-  PROVIDER_LABELS,
-  getCurrentModelLabel,
   type GenerationSettings,
   type Platform,
 } from "@/lib/types";
@@ -22,12 +20,10 @@ export type {
 export default function ControlsPanel({
   settings,
   onChange,
-  onOpenKeys,
   disabled,
 }: {
   settings: GenerationSettings;
   onChange: (patch: Partial<GenerationSettings>) => void;
-  onOpenKeys: () => void;
   disabled?: boolean;
 }) {
   const activePlatform = PLATFORMS.find((p) => p.id === settings.platform) || PLATFORMS[0];
@@ -49,28 +45,6 @@ export default function ControlsPanel({
     <div className="flex h-full w-full min-w-0 flex-col">
       <div className="flex flex-1 flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/70 p-3 dark:border-zinc-800 dark:bg-zinc-950/60">
         <div>
-          <div className="mb-2.5 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={onOpenKeys}
-              disabled={disabled}
-              className="flex min-w-0 items-center gap-1.5 text-left hover:opacity-80 disabled:opacity-50"
-            >
-              <span className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-zinc-200">
-                {PROVIDER_LABELS[settings.provider]}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={onOpenKeys}
-              disabled={disabled}
-              className="max-w-[165px] truncate rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-900/60 dark:bg-indigo-950/50 dark:text-indigo-300"
-              title="Change AI Provider, Model or API Keys"
-            >
-              {getCurrentModelLabel(settings)}
-            </button>
-          </div>
-
           <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-200/60 p-1 dark:bg-zinc-900">
             <button
               type="button"

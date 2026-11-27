@@ -73,7 +73,7 @@ export const PROVIDER_LABELS: Record<Provider, string> = {
 };
 
 export const GEMINI_MODELS: { id: GeminiModel; label: string }[] = [
-  { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash (Recommended)" },
+  { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash" },
   { id: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite (High Quota / Fast)" },
   { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
   { id: "gemini-3.1-pro", label: "Gemini 3.1 Pro" },
@@ -83,7 +83,7 @@ export const GEMINI_MODELS: { id: GeminiModel; label: string }[] = [
 ];
 
 export const GROQ_MODELS: { id: GroqModel; label: string }[] = [
-  { id: "qwen/qwen3.8-27b", label: "Qwen 3.8 27B (Recommended)" },
+  { id: "qwen/qwen3.8-27b", label: "Qwen 3.8 27B" },
   { id: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B" },
   { id: "meta-llama/llama-4-maverick-17b-128e-instruct", label: "Llama 4 Maverick 17B" },
 ];

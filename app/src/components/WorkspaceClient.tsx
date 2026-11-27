@@ -14,9 +14,7 @@ import {
 } from "@/lib/assetPrep";
 import {
   DEFAULT_SETTINGS,
-  PLATFORMS,
   PROVIDER_LABELS,
-  getCurrentModelLabel,
   type GenerationSettings,
   type Provider,
 } from "@/lib/types";
@@ -31,17 +29,8 @@ const EMPTY_KEYS: Record<Provider, string[]> = {
 };
 
 const KEY_STORAGE = "csvmeta-provider-keys-v1";
-const HISTORY_STORAGE = "csvmeta-history-v1";
 const SETTINGS_STORAGE = "csvmeta-generation-settings-v1";
 const ACTIVE_KEYS_STORAGE = "csvmeta-active-keys-v1";
-
-type HistoryItem = {
-  id: string;
-  fileName: string;
-  title?: string;
-  prompt?: string;
-  createdAt: string;
-};
 
 type GenerateFailure = {
   message: string;
@@ -92,7 +81,6 @@ export default function HomePage() {
   const [activityLogs, setActivityLogs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
-  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [activeTab, setActiveTab] = useState<NavItem>("Generate");
   const [hydrated, setHydrated] = useState(false);
 
@@ -107,11 +95,9 @@ export default function HomePage() {
       if (cancelled) return;
       try {
         const k = localStorage.getItem(KEY_STORAGE);
-        const h = localStorage.getItem(HISTORY_STORAGE);
         const s = localStorage.getItem(SETTINGS_STORAGE);
         const a = localStorage.getItem(ACTIVE_KEYS_STORAGE);
         if (k) setSavedKeys({ ...EMPTY_KEYS, ...JSON.parse(k) });
-        if (h) setHistory(JSON.parse(h));
         if (s) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(s) });
         if (a) setActiveKeys(JSON.parse(a));
       } catch {
@@ -127,9 +113,6 @@ export default function HomePage() {
   useEffect(() => {
     if (hydrated) localStorage.setItem(KEY_STORAGE, JSON.stringify(savedKeys));
   }, [hydrated, savedKeys]);
-  useEffect(() => {
-    if (hydrated) localStorage.setItem(HISTORY_STORAGE, JSON.stringify(history.slice(0, 100)));
-  }, [hydrated, history]);
   useEffect(() => {
     if (hydrated) localStorage.setItem(SETTINGS_STORAGE, JSON.stringify(settings));
   }, [hydrated, settings]);
@@ -362,7 +345,6 @@ export default function HomePage() {
           const items = Array.isArray(result.items)
             ? (result.items as Array<Record<string, unknown>>)
             : [];
-          const newHistory: HistoryItem[] = [];
           for (let idx = 0; idx < batch.length; idx++) {
             const img = batch[idx];
             const itemRes = items.find((r) => Number(r.index) === idx) || items[idx];
@@ -385,14 +367,7 @@ export default function HomePage() {
               keywords: Array.isArray(itemRes.keywords) ? itemRes.keywords.map(String) : [],
               error: undefined,
             });
-            newHistory.push({
-              id: img.id,
-              fileName: img.file.name,
-              title,
-              createdAt: new Date().toISOString(),
-            });
           }
-          setHistory((h) => [...newHistory.reverse(), ...h].slice(0, 100));
           return { ok: true };
         }
 
@@ -408,19 +383,6 @@ export default function HomePage() {
                 keywords: Array.isArray(result.keywords) ? result.keywords.map(String) : [],
                 error: undefined,
               }
-        );
-
-        setHistory((h) =>
-          [
-            {
-              id: single.id,
-              fileName: single.file.name,
-              title: result.title ? String(result.title) : undefined,
-              prompt: result.prompt ? String(result.prompt) : undefined,
-              createdAt: new Date().toISOString(),
-            },
-            ...h,
-          ].slice(0, 100)
         );
 
         return { ok: true };
@@ -771,9 +733,6 @@ export default function HomePage() {
     setActiveKeys((a) => ({ ...a, [p]: 0 }));
   };
 
-  const activePlatformLabel =
-    PLATFORMS.find((p) => p.id === settings.platform)?.label || "General";
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100">
       <Sidebar
@@ -782,7 +741,6 @@ export default function HomePage() {
         onOpenKeys={() => setKeysOpen(true)}
         doneCount={doneCount}
         totalCount={images.length}
-        historyCount={history.length}
       />
 
       <main className="min-h-screen md:ml-[220px]">
@@ -794,7 +752,7 @@ export default function HomePage() {
             </h1>
 
             <div className="flex items-center gap-1.5 md:hidden">
-              {(["Generate", "Metadata", "History", "Settings"] as NavItem[]).map((tab) => (
+              {(["Generate", "Settings"] as NavItem[]).map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -832,88 +790,17 @@ export default function HomePage() {
                   <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-indigo-600" />
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() => setKeysOpen(true)}
-                aria-label="API Keys"
-                title="API Keys & Models"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs text-white hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-500"
-              >
-                ⚙
-              </button>
             </div>
           </header>
 
           <div className="px-4 py-4">
-            {activeTab === "History" ? (
-              <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-bold">Generation History ({history.length})</h2>
-                  {history.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setHistory([])}
-                      className="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/30"
-                    >
-                      Clear History
-                    </button>
-                  )}
-                </div>
-                {history.length ? (
-                  history.map((h) => (
-                    <article key={h.id + h.createdAt} className="border-b border-slate-100 py-3 dark:border-zinc-800">
-                      <b className="text-sm">{h.fileName}</b>
-                      <p className="mt-1 text-sm text-slate-600 dark:text-zinc-300">{h.title || h.prompt}</p>
-                      <small className="text-xs text-slate-400">{new Date(h.createdAt).toLocaleString()}</small>
-                    </article>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">No history yet.</p>
-                )}
-              </section>
-            ) : activeTab === "Templates" ? (
-              <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-                <h2 className="mb-2 text-lg font-bold">Style &amp; Prompt Templates</h2>
-                <p className="mb-4 text-sm text-slate-500 dark:text-zinc-400">
-                  যেকোনো টেমপ্লেটে ক্লিক করলে সেটি আপনার Extra Instructions হিসেবে সেট হয়ে যাবে।
-                </p>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {[
-                    "Commercial stock photography, clear subject, natural lighting, copy space",
-                    "Minimal composition isolated on clean background, studio lighting",
-                    "Editorial lifestyle photography with authentic warm atmosphere",
-                    "Flat lay top-down composition, crisp focus, vibrant balanced colors",
-                    "High-resolution background texture, seamless clean aesthetic, no text",
-                  ].map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => {
-                        updateSettings({ extraInstructions: t });
-                        setActiveTab("Generate");
-                        pushLog("টেমপ্লেট সেট করা হয়েছে।");
-                      }}
-                      className="rounded-xl border border-slate-200 p-4 text-left text-sm transition hover:border-indigo-500 hover:bg-indigo-50/40 dark:border-zinc-800 dark:hover:bg-zinc-800"
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ) : activeTab === "Settings" ? (
+            {activeTab === "Settings" ? (
               <section className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
                 <h2 className="text-lg font-bold">Settings</h2>
                 <p className="text-sm text-slate-500 dark:text-zinc-400">
                   সব API key ও সেটিংস শুধু আপনার ব্রাউজারে সেভ থাকে। একাধিক API key যোগ করলে রেট-লিমিটে আটকালে স্বয়ংক্রিয়ভাবে পরের key-তে সুইচ করবে।
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setKeysOpen(true)}
-                    className="rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
-                  >
-                    Manage API Keys &amp; Models
-                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -926,76 +813,9 @@ export default function HomePage() {
                   </button>
                 </div>
               </section>
-            ) : activeTab === "Metadata" ? (
-              <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-bold">Generated Metadata ({doneCount} / {images.length})</h2>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400">
-                      Target Export Platform: <b>{activePlatformLabel}</b>
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("Generate")}
-                      className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-zinc-700"
-                    >
-                      + Add / Generate More
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => downloadPlatformCsv(images, settings.platform)}
-                      disabled={!exportableCount}
-                      className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-40"
-                    >
-                      ↓ Export {activePlatformLabel} CSV ({exportableCount})
-                    </button>
-                  </div>
-                </div>
-                {images.length > 0 ? (
-                  <PreviewGrid
-                    images={images}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                    onRemove={removeImage}
-                    onUpdate={updateImage}
-                    notice={notice}
-                  />
-                ) : (
-                  <p className="py-12 text-center text-sm text-slate-500">
-                    এখনো কোনো ছবি আপলোড করা হয়নি। Generate ট্যাব থেকে ছবি আপলোড করুন।
-                  </p>
-                )}
-              </section>
             ) : (
               <div className="grid items-start gap-4 min-[900px]:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)_minmax(0,0.95fr)]">
                 <div className="min-w-0 flex flex-col gap-3 min-[900px]:col-span-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="rounded-full bg-indigo-50 px-2.5 py-1 font-semibold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                        {PROVIDER_LABELS[settings.provider]} · {getCurrentModelLabel(settings)}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-700 dark:bg-zinc-800 dark:text-zinc-300">
-                        Export: {activePlatformLabel}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setKeysOpen(true)}
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                        (savedKeys[settings.provider] || []).length > 0
-                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
-                          : "bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-950/50 dark:text-amber-300"
-                      }`}
-                    >
-                      {(savedKeys[settings.provider] || []).length > 0
-                        ? `✓ ${(savedKeys[settings.provider] || []).length} API Key(s) Ready`
-                        : "⚠ Add API Key"}
-                    </button>
-                  </div>
-
                   <section className="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
                     <button
                       type="button"
@@ -1114,7 +934,6 @@ export default function HomePage() {
                     <ControlsPanel
                       settings={settings}
                       onChange={updateSettings}
-                      onOpenKeys={() => setKeysOpen(true)}
                       disabled={busy}
                     />
                   </div>

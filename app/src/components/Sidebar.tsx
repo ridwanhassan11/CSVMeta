@@ -4,13 +4,10 @@ import Link from "next/link";
 import { useTheme } from "../hooks/useTheme";
 import { signOut } from "next-auth/react";
 
-export type NavItem = "Generate" | "Metadata" | "History" | "Templates" | "Settings";
+export type NavItem = "Generate" | "Settings";
 
 const ICONS: Record<NavItem, string> = {
   Generate: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z",
-  Metadata: "M12 2l9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5",
-  History: "M12 8v4l3 2M21 12a9 9 0 1 1-3-6.7L21 8",
-  Templates: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
   Settings:
     "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z",
 };
@@ -37,16 +34,14 @@ export default function Sidebar({
   onOpenKeys,
   doneCount = 0,
   totalCount = 0,
-  historyCount = 0,
 }: {
   active?: NavItem;
   onNavigate?: (item: NavItem) => void;
   onOpenKeys?: () => void;
   doneCount?: number;
   totalCount?: number;
-  historyCount?: number;
 }) {
-  const items: NavItem[] = ["Generate", "Metadata", "History", "Templates", "Settings"];
+  const items: NavItem[] = ["Generate", "Settings"];
   const { theme, toggleTheme } = useTheme();
   const [adminInfo, setAdminInfo] = useState<{ isAdmin: boolean; onlineNow?: number }>({
     isAdmin: false,
@@ -140,14 +135,11 @@ export default function Sidebar({
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="mt-2 text-[11px] text-slate-400 dark:text-zinc-500">
-            History saved: {historyCount}
-          </p>
           {onOpenKeys && (
             <button
               type="button"
               onClick={onOpenKeys}
-              className="mt-2.5 w-full rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-indigo-300 hover:text-indigo-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-indigo-500"
+              className="mt-3 w-full rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-semibold text-slate-700 shadow-2xs transition hover:border-indigo-300 hover:text-indigo-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-indigo-500"
             >
               ⚙ Manage API Keys
             </button>
