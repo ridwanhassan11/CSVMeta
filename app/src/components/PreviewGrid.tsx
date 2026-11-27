@@ -149,23 +149,14 @@ export default function PreviewGrid({
             <button
               type="button"
               onClick={() => setLiveSort((v) => !v)}
-              title="Keep currently generating and latest completed images pinned to the top"
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition ${
+              title="Show currently generating and newest completed items at the top"
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition ${
                 liveSort
                   ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300"
                   : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
               }`}
             >
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  counts.loading > 0
-                    ? "animate-pulse bg-emerald-500"
-                    : liveSort
-                      ? "bg-indigo-500"
-                      : "bg-slate-400"
-                }`}
-              />
-              {liveSort ? "Live Top" : "Original #"}
+              {liveSort ? "Newest First" : "Original #"}
             </button>
 
             <input
@@ -221,17 +212,7 @@ export default function PreviewGrid({
                   }`}
                 >
                   <td className="px-3.5 py-3.5 text-xs font-bold text-slate-400 dark:text-zinc-500">
-                    <div>{index + 1}</div>
-                    {isGenerating && (
-                      <span className="mt-1 inline-block rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold uppercase text-amber-700 dark:bg-amber-950/70 dark:text-amber-300">
-                        Live
-                      </span>
-                    )}
-                    {!isGenerating && isLatestDone && (
-                      <span className="mt-1 inline-block rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold uppercase text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
-                        New
-                      </span>
-                    )}
+                    {index + 1}
                   </td>
 
                   <td className="px-3.5 py-3">
