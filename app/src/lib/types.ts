@@ -14,7 +14,11 @@ export type GroqModel =
   | "meta-llama/llama-4-scout-17b-16e-instruct"
   | "meta-llama/llama-4-maverick-17b-128e-instruct";
 
-export type MistralModel = "pixtral-large-latest" | "pixtral-12b-2409";
+export type MistralModel =
+  | "mistral-small-latest"
+  | "pixtral-12b-2409"
+  | "mistral-medium-latest"
+  | "pixtral-large-latest";
 
 export type OpenAIModel = "gpt-4o" | "gpt-4o-mini" | "gpt-4.1" | "gpt-4.1-mini";
 
@@ -50,7 +54,7 @@ export const DEFAULT_SETTINGS: GenerationSettings = {
   provider: "gemini",
   geminiModel: "gemini-3.8-flash",
   groqModel: "qwen/qwen3.8-27b",
-  mistralModel: "pixtral-large-latest",
+  mistralModel: "mistral-small-latest",
   openaiModel: "gpt-4o",
   openrouterModel: "google/gemini-2.5-flash",
   mode: "metadata",
@@ -89,8 +93,10 @@ export const GROQ_MODELS: { id: GroqModel; label: string }[] = [
 ];
 
 export const MISTRAL_MODELS: { id: MistralModel; label: string }[] = [
+  { id: "mistral-small-latest", label: "Mistral Small Vision (Free)" },
+  { id: "pixtral-12b-2409", label: "Pixtral 12B (Free)" },
+  { id: "mistral-medium-latest", label: "Mistral Medium Vision" },
   { id: "pixtral-large-latest", label: "Pixtral Large" },
-  { id: "pixtral-12b-2409", label: "Pixtral 12B" },
 ];
 
 export const OPENAI_MODELS: { id: OpenAIModel; label: string }[] = [

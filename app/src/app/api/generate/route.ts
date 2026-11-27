@@ -365,20 +365,35 @@ async function generateWithOpenAICompatible(opts: {
 }) {
   const content = buildMultiModalContent(opts.assets, opts.prompt);
 
-  const res = await fetch(`${opts.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${opts.apiKey}`,
-      ...(opts.extraHeaders || {}),
-    },
-    body: JSON.stringify({
-      model: opts.model,
-      messages: [{ role: "user", content }],
-      response_format: { type: "json_object" },
-      temperature: 0.4,
-    }),
-  });
+  const sendRequest = (withResponseFormat: boolean) =>
+    fetch(`${opts.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${opts.apiKey}`,
+        ...(opts.extraHeaders || {}),
+      },
+      body: JSON.stringify({
+        model: opts.model,
+        messages: [{ role: "user", content }],
+        ...(withResponseFormat ? { response_format: { type: "json_object" } } : {}),
+        temperature: 0.4,
+      }),
+    });
+
+  let res = await sendRequest(true);
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    if (res.status === 400 && /response_format|json_object/i.test(errText)) {
+      res = await sendRequest(false);
+    } else {
+      const retryAfter = parseRetryAfterSeconds(errText, res.headers.get("retry-after"));
+      throw classifyProviderError(
+        { status: res.status, message: `${opts.providerLabel} error (${res.status}): ${errText.slice(0, 300)}`, retryAfter },
+        opts.providerLabel
+      );
+    }
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
@@ -474,7 +489,7 @@ export async function POST(req: Request) {
     const provider = (formData.get("provider") as string) || "gemini";
     const geminiModel = (formData.get("geminiModel") as string) || "gemini-3.8-flash";
     const groqModel = (formData.get("groqModel") as string) || "qwen/qwen3.8-27b";
-    const mistralModel = (formData.get("mistralModel") as string) || "pixtral-large-latest";
+    const mistralModel = (formData.get("mistralModel") as string) || "mistral-small-latest";
     const openaiModel = (formData.get("openaiModel") as string) || "gpt-4o";
     const openrouterModel = (formData.get("openrouterModel") as string) || "google/gemini-2.5-flash";
     const apiKey = ((formData.get("apiKey") as string) || "").trim();
@@ -616,7 +631,7 @@ export async function POST(req: Request) {
             providerLabel: "OpenRouter",
             extraHeaders: {
               "HTTP-Referer": "https://csvmeta-drab.vercel.app",
-              "X-Title": "MetaNest",
+              "X-Title": "EasyMeta",
             },
           });
           break;

@@ -60,8 +60,8 @@ const PROVIDER_META: Record<Provider, ProviderMetaEntry> = {
   },
   mistral: {
     name: "Mistral AI",
-    tagline: "Pixtral vision মডেল দিয়ে ছবি থেকে মেটাডাটা তৈরি",
-    badge: "Paid",
+    tagline: "Free (Experiment) ও Paid tier-এ Mistral Small ও Pixtral vision দিয়ে মেটাডাটা তৈরি",
+    badge: "Free & Paid",
     keyUrl: "https://console.mistral.ai/api-keys/",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -192,7 +192,7 @@ export default function ApiKeyModal({
               ◈
             </span>
             <div>
-              <h2 className="text-base font-bold tracking-tight">MetaNest AI Engine &amp; Keys</h2>
+              <h2 className="text-base font-bold tracking-tight">EasyMeta AI Engine &amp; Keys</h2>
               <p className="text-xs text-slate-500 dark:text-zinc-400">
                 আপনার সব API key শুধু আপনার ব্রাউজারেই সুরক্ষিত থাকে
               </p>
