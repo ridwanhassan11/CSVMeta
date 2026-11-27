@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   toggleBlockUser,
+  setUserApproval,
+  setApprovalMode,
   deleteUserAccount,
   getUserActivity,
   type UserRecord,
@@ -31,19 +33,21 @@ function formatRelative(iso?: string) {
 export default function AdminDashboard({
   initialUsers,
   initialActivity,
+  initialRequireApproval,
 }: {
   initialUsers: UserRecord[];
   initialActivity: ActivityEntry[];
+  initialRequireApproval: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "online" | "active" | "blocked">("all");
+  const [filter, setFilter] = useState<"all" | "online" | "pending" | "active" | "blocked">("all");
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const [activityCache, setActivityCache] = useState<Record<string, ActivityEntry[]>>({});
+  const [manualEmail, setManualEmail] = useState("");
 
-  // প্রতি ১৫ সেকেন্ডে অটো-রিফ্রেশ যাতে অনলাইন ইউজার ও নতুন সাইন-ইন লাইভ দেখা যায়
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
@@ -63,15 +67,18 @@ export default function AdminDashboard({
         ? true
         : filter === "online"
           ? u.online
-          : filter === "blocked"
-            ? u.blocked
-            : !u.blocked;
+          : filter === "pending"
+            ? !u.approved && !u.blocked
+            : filter === "blocked"
+              ? u.blocked
+              : !u.blocked && u.approved;
     return matchesSearch && matchesFilter;
   });
 
   const totalUsers = initialUsers.length;
   const blockedCount = initialUsers.filter((u) => u.blocked).length;
   const onlineNow = initialUsers.filter((u) => u.online).length;
+  const pendingCount = initialUsers.filter((u) => !u.approved && !u.blocked).length;
   const today = new Date().toDateString();
   const signedInToday = initialUsers.filter(
     (u) => u.lastSignIn && new Date(u.lastSignIn).toDateString() === today
@@ -80,6 +87,34 @@ export default function AdminDashboard({
   function handleToggleBlock(email: string, blocked: boolean) {
     startTransition(async () => {
       await toggleBlockUser(email, blocked);
+      router.refresh();
+    });
+  }
+
+  function handleApproval(email: string, approved: boolean) {
+    startTransition(async () => {
+      await setUserApproval(email, approved);
+      router.refresh();
+    });
+  }
+
+  function handleApprovalMode(nextMode: boolean) {
+    startTransition(async () => {
+      await setApprovalMode(nextMode);
+      router.refresh();
+    });
+  }
+
+  function handleManualAction(action: "approve" | "block") {
+    const clean = manualEmail.trim().toLowerCase();
+    if (!clean || !clean.includes("@")) return;
+    startTransition(async () => {
+      if (action === "approve") {
+        await setUserApproval(clean, true);
+      } else {
+        await toggleBlockUser(clean, true);
+      }
+      setManualEmail("");
       router.refresh();
     });
   }
@@ -106,18 +141,20 @@ export default function AdminDashboard({
 
   function exportCSV() {
     const esc = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
-    const header = "Name,Email,Location,Online,Sign Ins,Last Active,Last Sign In,Last Sign Out,Blocked";
+    const header =
+      "Name,Email,Location,Online,Approved,Blocked,Sign Ins,Last Active,Last Sign In,Last Sign Out";
     const rows = initialUsers.map((u) =>
       [
         esc(u.name),
         esc(u.email),
         esc(u.location || ""),
         u.online ? "Yes" : "No",
+        u.approved ? "Yes" : "No",
+        u.blocked ? "Yes" : "No",
         String(u.signInCount || 0),
         esc(formatTime(u.lastActive)),
         esc(formatTime(u.lastSignIn)),
         esc(formatTime(u.lastSignOut)),
-        u.blocked ? "Yes" : "No",
       ].join(",")
     );
     const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
@@ -145,7 +182,7 @@ export default function AdminDashboard({
                 Admin Live Monitor
               </h1>
               <p className="text-xs text-slate-500 sm:text-sm dark:text-zinc-400">
-                কে লগইন করছে, কতজন অনলাইনে আছে ও সবার ইমেইল হিস্ট্রি (প্রতি ১৫ সেকেন্ডে আপডেট হয়)
+                কে লগইন করছে, কতজন অনলাইনে আছে, অনুমতি ও ব্লক কন্ট্রোল (প্রতি ১৫ সেকেন্ডে আপডেট হয়)
               </p>
             </div>
           </div>
@@ -168,15 +205,93 @@ export default function AdminDashboard({
           </div>
         </div>
 
-        {/* stats cards */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {/* host access controls */}
+        <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              সাইটে প্রবেশের নিয়ম (Access Control)
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+              নতুন কেউ সাইন ইন করলে কীভাবে ঢুকবে?
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => handleApprovalMode(false)}
+                className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
+                  !initialRequireApproval
+                    ? "border-indigo-600 bg-indigo-600 text-white shadow-sm"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+                }`}
+              >
+                <div>সবাই ঢুকতে পারবে</div>
+                <div className="mt-0.5 text-[11px] font-normal opacity-80">
+                  Google লগইন করলেই ওপেন (ব্লক ছাড়া)
+                </div>
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => handleApprovalMode(true)}
+                className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
+                  initialRequireApproval
+                    ? "border-amber-600 bg-amber-600 text-white shadow-sm"
+                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+                }`}
+              >
+                <div>আপনার অনুমতি লাগবে</div>
+                <div className="mt-0.5 text-[11px] font-normal opacity-80">
+                  আপনি Approve না করলে ঢুকতে পারবে না
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              ইমেইল দিয়ে সরাসরি কন্ট্রোল
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+              আগেই যেকোনো Gmail অনুমতি দিন বা ব্লক করুন
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <input
+                type="email"
+                value={manualEmail}
+                onChange={(e) => setManualEmail(e.target.value)}
+                placeholder="user@gmail.com লিখুন..."
+                className="min-w-[180px] flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-950"
+              />
+              <button
+                type="button"
+                disabled={isPending || !manualEmail.includes("@")}
+                onClick={() => handleManualAction("approve")}
+                className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
+              >
+                ✓ অনুমতি দিন
+              </button>
+              <button
+                type="button"
+                disabled={isPending || !manualEmail.includes("@")}
+                onClick={() => handleManualAction("block")}
+                className="rounded-xl bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-40"
+              >
+                ⛔ ব্লক করুন
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* stats cards */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Total Users
             </p>
             <p className="mt-1.5 text-2xl font-bold">{totalUsers}</p>
           </div>
-          <div className="rounded-2xl border border-emerald-200/80 bg-white p-5 shadow-2xs dark:border-emerald-900/50 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-emerald-200/80 bg-white p-4 shadow-2xs dark:border-emerald-900/50 dark:bg-zinc-900">
             <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
               Online Now
@@ -185,7 +300,15 @@ export default function AdminDashboard({
               {onlineNow}
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Pending Approval
+            </p>
+            <p className="mt-1.5 text-2xl font-bold text-amber-600 dark:text-amber-400">
+              {pendingCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Signed In Today
             </p>
@@ -193,7 +316,7 @@ export default function AdminDashboard({
               {signedInToday}
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Blocked
             </p>
@@ -216,7 +339,8 @@ export default function AdminDashboard({
               [
                 { id: "all", label: `সবাই (${totalUsers})` },
                 { id: "online", label: `অনলাইন (${onlineNow})` },
-                { id: "active", label: "অ্যাক্টিভ" },
+                { id: "pending", label: `অনুমতির অপেক্ষায় (${pendingCount})` },
+                { id: "active", label: "অনুমোদিত" },
                 { id: "blocked", label: `ব্লকড (${blockedCount})` },
               ] as const
             ).map((f) => (
@@ -224,7 +348,7 @@ export default function AdminDashboard({
                 key={f.id}
                 type="button"
                 onClick={() => setFilter(f.id)}
-                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   filter === f.id
                     ? "bg-slate-900 text-white dark:bg-indigo-600"
                     : "text-slate-500 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -265,7 +389,7 @@ export default function AdminDashboard({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-semibold">{u.name || "নাম নেই"}</p>
+                        <p className="truncate text-sm font-semibold">{u.name || "Pre-added User"}</p>
                         {u.online ? (
                           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                             ● Online
@@ -273,6 +397,11 @@ export default function AdminDashboard({
                         ) : (
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">
                             {formatRelative(u.lastActive || u.lastSignIn)}
+                          </span>
+                        )}
+                        {!u.approved && !u.blocked && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                            অনুমতির অপেক্ষায়
                           </span>
                         )}
                         {u.blocked && (
@@ -292,7 +421,28 @@ export default function AdminDashboard({
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex flex-wrap shrink-0 items-center gap-2">
+                      {!u.approved ? (
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleApproval(u.email, true)}
+                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
+                        >
+                          ✓ অনুমতি দিন
+                        </button>
+                      ) : (
+                        initialRequireApproval && (
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => handleApproval(u.email, false)}
+                            className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200 disabled:opacity-40 dark:bg-zinc-800 dark:text-zinc-300"
+                          >
+                            অনুমতি প্রত্যাহার
+                          </button>
+                        )
+                      )}
                       <button
                         type="button"
                         onClick={() => handleExpand(u.email)}

@@ -1,11 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { Redis } from "@upstash/redis";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-});
+import { redis } from "@/lib/redis";
+import { isAdminEmail } from "@/lib/admin";
 
 async function logActivity(email: string, type: "signin" | "signout") {
   const at = new Date().toISOString();
@@ -31,7 +27,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       try {
         const record = (await redis.hgetall(`user:${user.email}`)) as Record<string, unknown> | null;
         if (record && record.blocked === "true") {
-          return false;
+          return "/blocked";
         }
       } catch (err) {
         console.error("Failed to check block status:", err);
@@ -44,10 +40,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user }) {
       if (!user?.email) return;
       try {
+        const [existing, siteSettings] = (await redis
+          .pipeline()
+          .hgetall(`user:${user.email}`)
+          .hgetall("site_settings")
+          .exec()) as [Record<string, string> | null, Record<string, string> | null];
+
+        const requireApproval = siteSettings?.requireApproval === "true";
+        const alreadyApproved = existing?.approved === "true";
+        const approved =
+          isAdminEmail(user.email) || alreadyApproved || !requireApproval ? "true" : "false";
+
         await redis.hset(`user:${user.email}`, {
           email: user.email,
           name: user.name || "",
           image: user.image || "",
+          approved,
           lastSignIn: new Date().toISOString(),
           lastActive: new Date().toISOString(),
         });

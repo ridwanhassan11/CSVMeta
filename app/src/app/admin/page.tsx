@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { isAdminEmail } from "@/lib/admin";
-import { getAllUsers, getGlobalActivity } from "./actions";
+import { getAllUsers, getApprovalMode, getGlobalActivity } from "./actions";
 import AdminDashboard from "./AdminDashboard";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,17 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, activity] = await Promise.all([getAllUsers(), getGlobalActivity()]);
+  const [users, activity, requireApproval] = await Promise.all([
+    getAllUsers(),
+    getGlobalActivity(),
+    getApprovalMode(),
+  ]);
 
-  return <AdminDashboard initialUsers={users} initialActivity={activity} />;
+  return (
+    <AdminDashboard
+      initialUsers={users}
+      initialActivity={activity}
+      initialRequireApproval={requireApproval}
+    />
+  );
 }

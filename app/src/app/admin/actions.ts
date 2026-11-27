@@ -1,14 +1,9 @@
 "use server";
 
-import { Redis } from "@upstash/redis";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/admin";
-
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
-});
+import { redis } from "@/lib/redis";
 
 const ONLINE_WINDOW_MS = 120_000;
 
@@ -30,6 +25,7 @@ export type UserRecord = {
   signInCount: number;
   online: boolean;
   blocked: boolean;
+  approved: boolean;
 };
 
 export type ActivityEntry = {
@@ -37,6 +33,20 @@ export type ActivityEntry = {
   email?: string;
   at: string;
 };
+
+export async function getApprovalMode(): Promise<boolean> {
+  await assertAdmin();
+  const siteSettings = (await redis.hgetall("site_settings")) as Record<string, string> | null;
+  return siteSettings?.requireApproval === "true";
+}
+
+export async function setApprovalMode(requireApproval: boolean) {
+  await assertAdmin();
+  await redis.hset("site_settings", {
+    requireApproval: requireApproval ? "true" : "false",
+  });
+  revalidatePath("/admin");
+}
 
 export async function getAllUsers(): Promise<UserRecord[]> {
   await assertAdmin();
@@ -65,6 +75,7 @@ export async function getAllUsers(): Promise<UserRecord[]> {
       signInCount: Number.isFinite(count) ? count : 0,
       online: now - lastActiveTs < ONLINE_WINDOW_MS,
       blocked: data?.blocked === "true",
+      approved: data?.approved !== "false",
     };
   });
 
@@ -76,7 +87,26 @@ export async function getAllUsers(): Promise<UserRecord[]> {
 
 export async function toggleBlockUser(email: string, blocked: boolean) {
   await assertAdmin();
-  await redis.hset(`user:${email}`, { blocked: blocked ? "true" : "false" });
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return;
+  await redis.sadd("all_users", cleanEmail);
+  await redis.hset(`user:${cleanEmail}`, {
+    email: cleanEmail,
+    blocked: blocked ? "true" : "false",
+  });
+  revalidatePath("/admin");
+}
+
+export async function setUserApproval(email: string, approved: boolean) {
+  await assertAdmin();
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return;
+  await redis.sadd("all_users", cleanEmail);
+  await redis.hset(`user:${cleanEmail}`, {
+    email: cleanEmail,
+    approved: approved ? "true" : "false",
+    ...(approved ? { blocked: "false" } : {}),
+  });
   revalidatePath("/admin");
 }
 
