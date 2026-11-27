@@ -90,6 +90,43 @@ export async function recordUserSignOut(email?: string | null) {
   }
 }
 
+export async function getUserAccessStatus(email?: string | null): Promise<{
+  isAdmin: boolean;
+  blocked: boolean;
+  pending: boolean;
+}> {
+  const clean = normalizeEmail(email);
+  if (!clean) {
+    return { isAdmin: false, blocked: false, pending: false };
+  }
+  const isAdmin = isAdminEmail(clean);
+  if (isAdmin) {
+    return { isAdmin: true, blocked: false, pending: false };
+  }
+
+  const redis = await ensureLiveRedis();
+  if (!redis) {
+    return { isAdmin: false, blocked: false, pending: false };
+  }
+
+  try {
+    const [existing, siteSettings] = (await Promise.all([
+      redis.hgetall(`user:${clean}`),
+      redis.hgetall("site_settings"),
+    ])) as [Record<string, string> | null, Record<string, string> | null];
+
+    const blocked = existing?.blocked === "true";
+    const requireApproval = siteSettings?.requireApproval === "true";
+    const approved = existing?.approved === "true";
+    const pending = !blocked && requireApproval && !approved;
+
+    return { isAdmin: false, blocked, pending };
+  } catch (err) {
+    console.error("Failed to check user access status:", err);
+    return { isAdmin: false, blocked: false, pending: false };
+  }
+}
+
 export async function recordUserHeartbeat(params: {
   email?: string | null;
   name?: string | null;

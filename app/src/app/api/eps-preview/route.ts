@@ -1,8 +1,24 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getUserAccessStatus } from "@/lib/userTracking";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const session = await auth();
+  const userEmail = session?.user?.email;
+  if (!userEmail) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await getUserAccessStatus(userEmail);
+  if (access.blocked) {
+    return NextResponse.json({ error: "Account blocked" }, { status: 403 });
+  }
+  if (access.pending) {
+    return NextResponse.json({ error: "Approval required" }, { status: 403 });
+  }
+
   try {
     const buf = Buffer.from(await req.arrayBuffer());
     if (!buf.length || buf.length > 15_000_000) {

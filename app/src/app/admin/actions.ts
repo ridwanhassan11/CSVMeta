@@ -273,6 +273,11 @@ export async function toggleBlockUser(email: string, blocked: boolean) {
 
   const cleanEmail = normalizeEmail(email);
   if (!cleanEmail) return;
+  if (blocked && isAdminEmail(cleanEmail)) {
+    throw new Error(
+      "এটি আপনার হোস্ট অ্যাডমিন ইমেইল—অ্যাডমিন অ্যাকাউন্ট ব্লক করা যাবে না। ব্লক টেস্ট করতে অন্য একটি সাধারণ জিমেইল ব্যবহার করুন।"
+    );
+  }
   await redis.sadd("all_users", cleanEmail);
   await redis.hset(`user:${cleanEmail}`, {
     email: cleanEmail,

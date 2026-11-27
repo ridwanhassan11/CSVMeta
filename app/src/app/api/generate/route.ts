@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { getUserAccessStatus } from "@/lib/userTracking";
 
 const PLATFORM_LABELS: Record<string, string> = {
   general: "a general stock photography and vector platform",
@@ -445,6 +447,29 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    const userEmail = session?.user?.email;
+    if (!userEmail) {
+      return NextResponse.json(
+        { success: false, code: "UNAUTHORIZED", error: "অনুগ্রহ করে আগে সাইন ইন করুন।" },
+        { status: 401 }
+      );
+    }
+
+    const access = await getUserAccessStatus(userEmail);
+    if (access.blocked) {
+      return NextResponse.json(
+        { success: false, code: "USER_BLOCKED", error: "আপনার অ্যাকাউন্টটি অ্যাডমিন দ্বারা ব্লক করা হয়েছে।" },
+        { status: 403 }
+      );
+    }
+    if (access.pending) {
+      return NextResponse.json(
+        { success: false, code: "USER_PENDING", error: "আপনার অ্যাকাউন্টটি এখনো অনুমোদনের অপেক্ষায় আছে।" },
+        { status: 403 }
+      );
+    }
+
     const formData = await req.formData();
     const provider = (formData.get("provider") as string) || "gemini";
     const geminiModel = (formData.get("geminiModel") as string) || "gemini-3.8-flash";

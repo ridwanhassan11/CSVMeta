@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { ensureLiveRedis } from "@/lib/redis";
 import { isAdminEmail } from "@/lib/admin";
-import { normalizeEmail } from "@/lib/userTracking";
+import { getUserAccessStatus, normalizeEmail } from "@/lib/userTracking";
 
 const PING_COOKIE = "cm_last_ping";
 const PING_INTERVAL_MS = 5 * 60 * 1000;
@@ -25,34 +25,22 @@ export default auth(async (req) => {
     return Response.redirect(new URL("/", req.nextUrl));
   }
 
-  const redis = await ensureLiveRedis();
-
-  if (isLoggedIn && email && !isAdmin && redis) {
-    try {
-      const [userRecord, siteSettings] = (await Promise.all([
-        redis.hgetall(`user:${email}`),
-        redis.hgetall("site_settings"),
-      ])) as [Record<string, string> | null, Record<string, string> | null];
-
-      const isBlocked = userRecord?.blocked === "true";
-      const requireApproval = siteSettings?.requireApproval === "true";
-      const isApproved = userRecord?.approved === "true";
-
-      if (isBlocked) {
-        if (path !== "/blocked") {
-          return Response.redirect(new URL("/blocked", req.nextUrl));
-        }
-      } else if (requireApproval && !isApproved) {
-        if (path !== "/pending") {
-          return Response.redirect(new URL("/pending", req.nextUrl));
-        }
-      } else if (isStatusPage) {
-        return Response.redirect(new URL("/", req.nextUrl));
+  if (isLoggedIn && email && !isAdmin) {
+    const access = await getUserAccessStatus(email);
+    if (access.blocked) {
+      if (path !== "/blocked") {
+        return Response.redirect(new URL("/blocked", req.nextUrl));
       }
-    } catch (err) {
-      console.error("Failed to check user access status:", err);
+    } else if (access.pending) {
+      if (path !== "/pending") {
+        return Response.redirect(new URL("/pending", req.nextUrl));
+      }
+    } else if (isStatusPage) {
+      return Response.redirect(new URL("/", req.nextUrl));
     }
   }
+
+  const redis = await ensureLiveRedis();
 
   const response = NextResponse.next();
 
