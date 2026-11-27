@@ -49,6 +49,11 @@ export default function AdminDashboard({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  const [usersState, setUsersState] = useState<UserRecord[]>(initialUsers);
+  const [activityState, setActivityState] = useState<ActivityEntry[]>(initialActivity);
+  const [requireApprovalState, setRequireApprovalState] = useState<boolean>(initialRequireApproval);
+  const [redisStatusState, setRedisStatusState] = useState<RedisStatus>(redisStatus);
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "online" | "pending" | "active" | "blocked">("all");
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
@@ -56,19 +61,35 @@ export default function AdminDashboard({
   const [manualEmail, setManualEmail] = useState("");
   const [actionError, setActionError] = useState("");
 
+  async function pullLatestSnapshot(openEmail?: string | null) {
+    try {
+      const res = await fetch("/api/admin/snapshot", { cache: "no-store" });
+      if (!res.ok) return;
+      const snap = (await res.json()) as {
+        users?: UserRecord[];
+        activity?: ActivityEntry[];
+        requireApproval?: boolean;
+        redisStatus?: RedisStatus;
+      };
+      if (snap.users) setUsersState(snap.users);
+      if (snap.activity) setActivityState(snap.activity);
+      if (typeof snap.requireApproval === "boolean") setRequireApprovalState(snap.requireApproval);
+      if (snap.redisStatus) setRedisStatusState(snap.redisStatus);
+      if (openEmail) {
+        const data = await getUserActivity(openEmail);
+        setActivityCache((prev) => ({ ...prev, [openEmail]: data }));
+      }
+    } catch {}
+  }
+
   useEffect(() => {
     const interval = setInterval(() => {
-      router.refresh();
-      if (expandedEmail) {
-        void getUserActivity(expandedEmail).then((data) =>
-          setActivityCache((prev) => ({ ...prev, [expandedEmail]: data }))
-        );
-      }
-    }, 8_000);
+      void pullLatestSnapshot(expandedEmail);
+    }, 5_000);
     return () => clearInterval(interval);
-  }, [router, expandedEmail]);
+  }, [expandedEmail]);
 
-  const users = initialUsers.filter((u) => {
+  const users = usersState.filter((u) => {
     const q = search.trim().toLowerCase();
     const matchesSearch =
       !q ||
@@ -88,12 +109,12 @@ export default function AdminDashboard({
     return matchesSearch && matchesFilter;
   });
 
-  const totalUsers = initialUsers.length;
-  const blockedCount = initialUsers.filter((u) => u.blocked).length;
-  const onlineNow = initialUsers.filter((u) => u.online).length;
-  const pendingCount = initialUsers.filter((u) => !u.approved && !u.blocked).length;
+  const totalUsers = usersState.length;
+  const blockedCount = usersState.filter((u) => u.blocked).length;
+  const onlineNow = usersState.filter((u) => u.online).length;
+  const pendingCount = usersState.filter((u) => !u.approved && !u.blocked).length;
   const today = new Date().toDateString();
-  const signedInToday = initialUsers.filter(
+  const signedInToday = usersState.filter(
     (u) => u.lastSignIn && new Date(u.lastSignIn).toDateString() === today
   ).length;
 
@@ -102,6 +123,7 @@ export default function AdminDashboard({
     startTransition(async () => {
       try {
         await fn();
+        await pullLatestSnapshot(expandedEmail);
         router.refresh();
       } catch (err: unknown) {
         setActionError(err instanceof Error ? err.message : "Action failed.");
@@ -153,7 +175,7 @@ export default function AdminDashboard({
     const esc = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
     const header =
       "Name,Email,Location,Session Status,Online,Approved,Blocked,Sign Ins,Last Active,Last Sign In,Last Sign Out";
-    const rows = initialUsers.map((u) =>
+    const rows = usersState.map((u) =>
       [
         esc(u.name),
         esc(u.email),
@@ -193,7 +215,7 @@ export default function AdminDashboard({
                 Admin Live Monitor
               </h1>
               <p className="text-xs text-slate-500 sm:text-sm dark:text-zinc-400">
-                কে সাইন ইন/আউট করছে, কতজন অনলাইনে আছে, অনুমতি ও ব্লক কন্ট্রোল (প্রতি ৮ সেকেন্ডে আপডেট হয়)
+                কে সাইন ইন/আউট করছে, কতজন অনলাইনে আছে, অনুমতি ও ব্লক কন্ট্রোল (প্রতি ৫ সেকেন্ডে অটো-আপডেট হয়)
               </p>
             </div>
           </div>
@@ -202,12 +224,7 @@ export default function AdminDashboard({
             <button
               type="button"
               onClick={() => {
-                router.refresh();
-                if (expandedEmail) {
-                  void getUserActivity(expandedEmail).then((data) =>
-                    setActivityCache((prev) => ({ ...prev, [expandedEmail]: data }))
-                  );
-                }
+                void pullLatestSnapshot(expandedEmail);
               }}
               className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
             >
@@ -223,19 +240,19 @@ export default function AdminDashboard({
           </div>
         </div>
 
-        {!redisStatus.ok && (
+        {!redisStatusState.ok && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50/90 p-5 text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200">
             <p className="font-semibold">ডাটাবেস (Upstash Redis) সংযুক্ত নেই বা কানেকশন ত্রুটি হয়েছে</p>
-            <p className="mt-1 break-all font-mono text-xs opacity-90">{redisStatus.error}</p>
+            <p className="mt-1 break-all font-mono text-xs opacity-90">{redisStatusState.error}</p>
             <p className="mt-2 text-xs opacity-85">
-              URL: <b>{redisStatus.hasUrl ? "হ্যাঁ" : "না"}</b> · Token:{" "}
-              <b>{redisStatus.hasToken ? "হ্যাঁ" : "না"}</b>
-              {redisStatus.host ? (
+              URL: <b>{redisStatusState.hasUrl ? "হ্যাঁ" : "না"}</b> · Token:{" "}
+              <b>{redisStatusState.hasToken ? "হ্যাঁ" : "না"}</b>
+              {redisStatusState.host ? (
                 <>
                   {" "}
                   · Host:{" "}
                   <code className="rounded bg-rose-100 px-1 py-0.5 dark:bg-rose-900/50">
-                    {`${redisStatus.protocol || ""}//${redisStatus.host}`}
+                    {`${redisStatusState.protocol || ""}//${redisStatusState.host}`}
                   </code>
                 </>
               ) : null}
@@ -264,10 +281,10 @@ export default function AdminDashboard({
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                disabled={isPending || !redisStatus.ok}
+                disabled={isPending || !redisStatusState.ok}
                 onClick={() => handleApprovalMode(false)}
                 className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition disabled:opacity-50 ${
-                  !initialRequireApproval
+                  !requireApprovalState
                     ? "border-indigo-600 bg-indigo-600 text-white shadow-sm"
                     : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
                 }`}
@@ -279,10 +296,10 @@ export default function AdminDashboard({
               </button>
               <button
                 type="button"
-                disabled={isPending || !redisStatus.ok}
+                disabled={isPending || !redisStatusState.ok}
                 onClick={() => handleApprovalMode(true)}
                 className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition disabled:opacity-50 ${
-                  initialRequireApproval
+                  requireApprovalState
                     ? "border-amber-600 bg-amber-600 text-white shadow-sm"
                     : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
                 }`}
@@ -312,7 +329,7 @@ export default function AdminDashboard({
               />
               <button
                 type="button"
-                disabled={isPending || !redisStatus.ok || !manualEmail.includes("@")}
+                disabled={isPending || !redisStatusState.ok || !manualEmail.includes("@")}
                 onClick={() => handleManualAction("approve")}
                 className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
               >
@@ -320,7 +337,7 @@ export default function AdminDashboard({
               </button>
               <button
                 type="button"
-                disabled={isPending || !redisStatus.ok || !manualEmail.includes("@")}
+                disabled={isPending || !redisStatusState.ok || !manualEmail.includes("@")}
                 onClick={() => handleManualAction("block")}
                 className="rounded-xl bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-40"
               >
@@ -483,7 +500,7 @@ export default function AdminDashboard({
                           ✓ অনুমতি দিন
                         </button>
                       ) : (
-                        initialRequireApproval && (
+                        requireApprovalState && (
                           <button
                             type="button"
                             disabled={isPending}
@@ -567,11 +584,11 @@ export default function AdminDashboard({
             <h2 className="text-sm font-bold">সাম্প্রতিক লগইন ও সাইন-আউট ফিড</h2>
             <span className="text-xs text-slate-400">সর্বশেষ ১০০টি ইভেন্ট</span>
           </div>
-          {initialActivity.length === 0 ? (
+          {activityState.length === 0 ? (
             <p className="text-sm text-slate-400">এখনো কোনো অ্যাক্টিভিটি রেকর্ড হয়নি।</p>
           ) : (
             <div className="max-h-72 space-y-2 overflow-y-auto">
-              {initialActivity.map((entry, i) => (
+              {activityState.map((entry, i) => (
                 <div
                   key={i}
                   className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2 text-xs sm:text-sm dark:bg-zinc-950/60"

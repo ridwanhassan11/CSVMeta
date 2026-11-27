@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/admin";
-import { getRedis, getRedisConfigStatus } from "@/lib/redis";
+import { ensureLiveRedis, getRedis, getRedisConfigStatus } from "@/lib/redis";
 import { normalizeEmail } from "@/lib/userTracking";
 
 const ONLINE_WINDOW_MS = 120_000;
@@ -184,8 +184,8 @@ export async function getAdminSnapshot(): Promise<{
   redisStatus: RedisStatus;
 }> {
   await assertAdmin();
+  const redis = await ensureLiveRedis();
   const cfg = getRedisConfigStatus();
-  const redis = getRedis();
 
   if (!redis || !cfg.configured) {
     return {

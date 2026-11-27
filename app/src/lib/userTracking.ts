@@ -1,12 +1,12 @@
 import { isAdminEmail } from "@/lib/admin";
-import { getRedis } from "@/lib/redis";
+import { ensureLiveRedis } from "@/lib/redis";
 
 export function normalizeEmail(email?: string | null): string {
   return (email || "").trim().toLowerCase();
 }
 
 export async function logUserActivity(email: string, type: "signin" | "signout") {
-  const redis = getRedis();
+  const redis = await ensureLiveRedis();
   const clean = normalizeEmail(email);
   if (!redis || !clean) return;
 
@@ -32,7 +32,7 @@ export async function recordUserSignIn(params: {
   image?: string | null;
 }) {
   const clean = normalizeEmail(params.email);
-  const redis = getRedis();
+  const redis = await ensureLiveRedis();
   if (!clean || !redis) return;
 
   try {
@@ -65,7 +65,7 @@ export async function recordUserSignIn(params: {
 
 export async function recordUserSignOut(email?: string | null) {
   const clean = normalizeEmail(email);
-  const redis = getRedis();
+  const redis = await ensureLiveRedis();
   if (!clean || !redis) return;
 
   try {
@@ -97,7 +97,7 @@ export async function recordUserHeartbeat(params: {
   location?: string;
 }): Promise<{ blocked: boolean; pending: boolean }> {
   const clean = normalizeEmail(params.email);
-  const redis = getRedis();
+  const redis = await ensureLiveRedis();
   if (!clean || !redis) {
     return { blocked: false, pending: false };
   }

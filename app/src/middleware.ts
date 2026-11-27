@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import { ensureLiveRedis } from "@/lib/redis";
 import { isAdminEmail } from "@/lib/admin";
 import { normalizeEmail } from "@/lib/userTracking";
 
@@ -25,7 +25,7 @@ export default auth(async (req) => {
     return Response.redirect(new URL("/", req.nextUrl));
   }
 
-  const redis = getRedis();
+  const redis = await ensureLiveRedis();
 
   if (isLoggedIn && email && !isAdmin && redis) {
     try {

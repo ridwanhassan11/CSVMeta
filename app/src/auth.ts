@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { getRedis } from "@/lib/redis";
+import { ensureLiveRedis } from "@/lib/redis";
 import { normalizeEmail, recordUserSignIn, recordUserSignOut } from "@/lib/userTracking";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -10,7 +10,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const email = normalizeEmail(user?.email);
       if (!email) return false;
 
-      const redis = getRedis();
+      const redis = await ensureLiveRedis();
       if (!redis) return true;
 
       try {
