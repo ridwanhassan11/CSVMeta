@@ -108,7 +108,7 @@ export default function LoginPage() {
             </span>
             <div className="flex items-center gap-2.5">
               <span className="text-base font-semibold tracking-tight text-slate-900">
-                CSVMeta
+                MetaNest
               </span>
               <span className="hidden rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 sm:inline-block">
                 Stock Metadata Studio
@@ -163,7 +163,7 @@ export default function LoginPage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-[17px]">
-              Instead of spending hours writing stock metadata manually, upload your JPG, PNG, WEBP, SVG, or EPS files in bulk. CSVMeta inspects every file with AI, writes accurate commercial metadata, lets you edit results inline, and exports ready-to-upload CSV spreadsheets.
+              Instead of spending hours writing stock metadata manually, upload your JPG, PNG, WEBP, SVG, or EPS files in bulk. MetaNest inspects every file with AI, writes accurate commercial metadata, lets you edit results inline, and exports ready-to-upload CSV spreadsheets.
             </p>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -196,7 +196,7 @@ export default function LoginPage() {
               </span>
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
-                  Open CSVMeta Workspace
+                  Open MetaNest Workspace
                 </h2>
                 <p className="text-sm text-slate-500">
                   Sign in with Google to save your workspace settings and history.
@@ -249,7 +249,7 @@ export default function LoginPage() {
               Designed for real stock contributor workflows
             </h2>
             <p className="mt-3 text-base leading-relaxed text-slate-600">
-              Every control inside CSVMeta focuses on saving preparation time and preventing CSV upload rejections on microstock sites.
+              Every control inside MetaNest focuses on saving preparation time and preventing CSV upload rejections on microstock sites.
             </p>
           </div>
 
@@ -362,7 +362,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-8 text-sm text-slate-500">
-            © {new Date().getFullYear()} CSVMeta — Stock Metadata Studio
+            © {new Date().getFullYear()} MetaNest — Stock Metadata Studio
           </p>
         </div>
       </footer>

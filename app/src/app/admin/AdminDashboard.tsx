@@ -194,7 +194,7 @@ export default function AdminDashboard({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "csvmeta-users.csv";
+    a.download = "metanest-users.csv";
     a.click();
     URL.revokeObjectURL(url);
   }

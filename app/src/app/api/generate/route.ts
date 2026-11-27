@@ -616,7 +616,7 @@ export async function POST(req: Request) {
             providerLabel: "OpenRouter",
             extraHeaders: {
               "HTTP-Referer": "https://csvmeta-drab.vercel.app",
-              "X-Title": "CSVMeta",
+              "X-Title": "MetaNest",
             },
           });
           break;

@@ -934,6 +934,7 @@ export default function HomePage() {
                     <ControlsPanel
                       settings={settings}
                       onChange={updateSettings}
+                      onOpenKeys={() => setKeysOpen(true)}
                       disabled={busy}
                     />
                   </div>
@@ -1013,7 +1014,7 @@ export default function HomePage() {
       {helpOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900">
-            <h2 className="text-lg font-bold">CSVMeta ব্যবহার গাইড</h2>
+            <h2 className="text-lg font-bold">MetaNest ব্যবহার গাইড</h2>
             <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-zinc-300">
               <li>1. <b>API Keys</b> থেকে Google Gemini / Groq / OpenRouter key যোগ করুন এবং <b>Test</b> দিয়ে যাচাই করুন।</li>
               <li>2. Free Tier key-তে কয়েকটি ছবির পর থেমে গেলে <b>Request Pace = Free Tier (4s)</b> সিলেক্ট করুন অথবা একাধিক API key যোগ করুন।</li>

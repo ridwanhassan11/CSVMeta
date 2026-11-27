@@ -77,7 +77,7 @@ export default function Sidebar({
         </div>
         <div>
           <div className="text-[16px] font-bold tracking-tight text-slate-900 dark:text-white">
-            CSVMeta
+            MetaNest
           </div>
           <div className="text-[11px] font-medium text-slate-400 dark:text-zinc-400">
             AI Metadata Studio

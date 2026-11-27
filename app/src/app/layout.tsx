@@ -7,8 +7,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Metadata",
-  description: "AI Metadata Platform",
+  title: "MetaNest",
+  description: "MetaNest — Stock Metadata Studio",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
