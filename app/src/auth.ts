@@ -1,9 +1,12 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import { redis } from "@/lib/redis";
+import { getRedis } from "@/lib/redis";
 import { isAdminEmail } from "@/lib/admin";
 
 async function logActivity(email: string, type: "signin" | "signout") {
+  const redis = getRedis();
+  if (!redis) return;
+
   const at = new Date().toISOString();
   const entry = JSON.stringify({ type, email, at });
 
@@ -23,6 +26,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user }) {
       if (!user?.email) return false;
+      const redis = getRedis();
+      if (!redis) return true;
 
       try {
         const record = (await redis.hgetall(`user:${user.email}`)) as Record<string, unknown> | null;
@@ -39,12 +44,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   events: {
     async signIn({ user }) {
       if (!user?.email) return;
+      const redis = getRedis();
+      if (!redis) return;
+
       try {
-        const [existing, siteSettings] = (await redis
-          .pipeline()
-          .hgetall(`user:${user.email}`)
-          .hgetall("site_settings")
-          .exec()) as [Record<string, string> | null, Record<string, string> | null];
+        const [existing, siteSettings] = (await Promise.all([
+          redis.hgetall(`user:${user.email}`),
+          redis.hgetall("site_settings"),
+        ])) as [Record<string, string> | null, Record<string, string> | null];
 
         const requireApproval = siteSettings?.requireApproval === "true";
         const alreadyApproved = existing?.approved === "true";
@@ -68,7 +75,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async signOut(message) {
       const email = (message as { token?: { email?: string } })?.token?.email;
-      if (!email) return;
+      const redis = getRedis();
+      if (!email || !redis) return;
+
       try {
         await redis.hset(`user:${email}`, {
           lastSignOut: new Date().toISOString(),

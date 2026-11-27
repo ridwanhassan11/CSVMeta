@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/admin";
-import { redis } from "@/lib/redis";
+import { getRedis, getRedisConfigStatus } from "@/lib/redis";
 
 const ONLINE_WINDOW_MS = 120_000;
 
@@ -34,48 +34,73 @@ export type ActivityEntry = {
   at: string;
 };
 
-export async function getApprovalMode(): Promise<boolean> {
-  await assertAdmin();
-  const siteSettings = (await redis.hgetall("site_settings")) as Record<string, string> | null;
-  return siteSettings?.requireApproval === "true";
-}
+export type RedisStatus = {
+  ok: boolean;
+  configured: boolean;
+  hasUrl: boolean;
+  hasToken: boolean;
+  error?: string;
+};
 
-export async function setApprovalMode(requireApproval: boolean) {
-  await assertAdmin();
-  await redis.hset("site_settings", {
-    requireApproval: requireApproval ? "true" : "false",
-  });
-  revalidatePath("/admin");
+async function fetchUserRecords(emails: string[]): Promise<Array<Record<string, string> | null>> {
+  const redis = getRedis();
+  if (!redis || emails.length === 0) return [];
+
+  try {
+    const pipe = redis.pipeline();
+    for (const email of emails) {
+      pipe.hgetall(`user:${email}`);
+    }
+    const execResult = await pipe.exec();
+    if (Array.isArray(execResult) && execResult.length === emails.length) {
+      return execResult as Array<Record<string, string> | null>;
+    }
+  } catch {
+    // Fallback below if pipeline fails in any environment
+  }
+
+  return Promise.all(
+    emails.map(async (email) => {
+      try {
+        return (await redis.hgetall(`user:${email}`)) as Record<string, string> | null;
+      } catch {
+        return null;
+      }
+    })
+  );
 }
 
 export async function getAllUsers(): Promise<UserRecord[]> {
   await assertAdmin();
-  const emails = (await redis.smembers("all_users")) as string[];
-  if (!emails || emails.length === 0) return [];
+  const redis = getRedis();
+  if (!redis) return [];
 
-  const pipe = redis.pipeline();
-  for (const email of emails) {
-    pipe.hgetall(`user:${email}`);
-  }
-  const records = (await pipe.exec()) as Array<Record<string, string> | null>;
+  const rawEmails = await redis.smembers("all_users");
+  const emails = Array.isArray(rawEmails)
+    ? rawEmails.map((e) => String(e || "").trim()).filter(Boolean)
+    : [];
+  if (emails.length === 0) return [];
 
+  const records = await fetchUserRecords(emails);
   const now = Date.now();
+
   const users: UserRecord[] = emails.map((email, i) => {
     const data = records[i];
-    const lastActiveTs = data?.lastActive ? new Date(data.lastActive).getTime() : 0;
+    const lastActiveStr = typeof data?.lastActive === "string" ? data.lastActive : undefined;
+    const lastActiveMs = lastActiveStr ? new Date(lastActiveStr).getTime() : NaN;
     const count = Number(data?.signInCount || 0);
     return {
       email,
-      name: data?.name || "",
-      image: data?.image || "",
-      location: data?.location || "",
-      lastSignIn: data?.lastSignIn,
-      lastSignOut: data?.lastSignOut,
-      lastActive: data?.lastActive,
+      name: typeof data?.name === "string" ? data.name : "",
+      image: typeof data?.image === "string" ? data.image : "",
+      location: typeof data?.location === "string" ? data.location : "",
+      lastSignIn: typeof data?.lastSignIn === "string" ? data.lastSignIn : undefined,
+      lastSignOut: typeof data?.lastSignOut === "string" ? data.lastSignOut : undefined,
+      lastActive: lastActiveStr,
       signInCount: Number.isFinite(count) ? count : 0,
-      online: now - lastActiveTs < ONLINE_WINDOW_MS,
-      blocked: data?.blocked === "true",
-      approved: data?.approved !== "false",
+      online: Number.isFinite(lastActiveMs) && now - lastActiveMs < ONLINE_WINDOW_MS,
+      blocked: String(data?.blocked || "") === "true",
+      approved: String(data?.approved || "") !== "false",
     };
   });
 
@@ -85,8 +110,110 @@ export async function getAllUsers(): Promise<UserRecord[]> {
   });
 }
 
+export async function getApprovalMode(): Promise<boolean> {
+  await assertAdmin();
+  const redis = getRedis();
+  if (!redis) return false;
+
+  const siteSettings = (await redis.hgetall("site_settings")) as Record<string, string> | null;
+  return siteSettings?.requireApproval === "true";
+}
+
+export async function getGlobalActivity(): Promise<ActivityEntry[]> {
+  await assertAdmin();
+  const redis = getRedis();
+  if (!redis) return [];
+
+  const raw = await redis.lrange("activity_log", 0, 99);
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((r) => {
+      try {
+        return typeof r === "string" ? (JSON.parse(r) as ActivityEntry) : (r as ActivityEntry);
+      } catch {
+        return null;
+      }
+    })
+    .filter((entry): entry is ActivityEntry => Boolean(entry && entry.at));
+}
+
+export async function getAdminSnapshot(): Promise<{
+  users: UserRecord[];
+  activity: ActivityEntry[];
+  requireApproval: boolean;
+  redisStatus: RedisStatus;
+}> {
+  await assertAdmin();
+  const cfg = getRedisConfigStatus();
+  const redis = getRedis();
+
+  if (!redis || !cfg.configured) {
+    return {
+      users: [],
+      activity: [],
+      requireApproval: false,
+      redisStatus: {
+        ok: false,
+        configured: false,
+        hasUrl: cfg.hasUrl,
+        hasToken: cfg.hasToken,
+        error: "Upstash Redis এনভায়রনমেন্ট ভ্যারিয়েবল (KV_REST_API_URL / KV_REST_API_TOKEN) Vercel-এ সেট করা নেই।",
+      },
+    };
+  }
+
+  try {
+    const [users, activity, requireApproval] = await Promise.all([
+      getAllUsers(),
+      getGlobalActivity(),
+      getApprovalMode(),
+    ]);
+    return {
+      users,
+      activity,
+      requireApproval,
+      redisStatus: {
+        ok: true,
+        configured: true,
+        hasUrl: cfg.hasUrl,
+        hasToken: cfg.hasToken,
+      },
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Redis connection error";
+    console.error("Admin snapshot failed:", err);
+    return {
+      users: [],
+      activity: [],
+      requireApproval: false,
+      redisStatus: {
+        ok: false,
+        configured: true,
+        hasUrl: cfg.hasUrl,
+        hasToken: cfg.hasToken,
+        error: msg,
+      },
+    };
+  }
+}
+
+export async function setApprovalMode(requireApproval: boolean) {
+  await assertAdmin();
+  const redis = getRedis();
+  if (!redis) throw new Error("Redis is not configured in Vercel environment variables.");
+
+  await redis.hset("site_settings", {
+    requireApproval: requireApproval ? "true" : "false",
+  });
+  revalidatePath("/admin");
+}
+
 export async function toggleBlockUser(email: string, blocked: boolean) {
   await assertAdmin();
+  const redis = getRedis();
+  if (!redis) throw new Error("Redis is not configured in Vercel environment variables.");
+
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail) return;
   await redis.sadd("all_users", cleanEmail);
@@ -99,6 +226,9 @@ export async function toggleBlockUser(email: string, blocked: boolean) {
 
 export async function setUserApproval(email: string, approved: boolean) {
   await assertAdmin();
+  const redis = getRedis();
+  if (!redis) throw new Error("Redis is not configured in Vercel environment variables.");
+
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail) return;
   await redis.sadd("all_users", cleanEmail);
@@ -112,6 +242,9 @@ export async function setUserApproval(email: string, approved: boolean) {
 
 export async function deleteUserAccount(email: string) {
   await assertAdmin();
+  const redis = getRedis();
+  if (!redis) throw new Error("Redis is not configured in Vercel environment variables.");
+
   await redis.del(`user:${email}`);
   await redis.del(`activity:${email}`);
   await redis.srem("all_users", email);
@@ -120,33 +253,30 @@ export async function deleteUserAccount(email: string) {
 
 export async function getUserActivity(email: string): Promise<ActivityEntry[]> {
   await assertAdmin();
-  const raw = (await redis.lrange(`activity:${email}`, 0, 49)) as Array<string | ActivityEntry>;
-  return raw
-    .map((r) => {
-      try {
-        return typeof r === "string" ? (JSON.parse(r) as ActivityEntry) : r;
-      } catch {
-        return null;
-      }
-    })
-    .filter((entry): entry is ActivityEntry => entry !== null);
-}
+  const redis = getRedis();
+  if (!redis) return [];
 
-export async function getGlobalActivity(): Promise<ActivityEntry[]> {
-  await assertAdmin();
-  const raw = (await redis.lrange("activity_log", 0, 99)) as Array<string | ActivityEntry>;
-  return raw
-    .map((r) => {
-      try {
-        return typeof r === "string" ? (JSON.parse(r) as ActivityEntry) : r;
-      } catch {
-        return null;
-      }
-    })
-    .filter((entry): entry is ActivityEntry => entry !== null);
+  try {
+    const raw = await redis.lrange(`activity:${email}`, 0, 49);
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((r) => {
+        try {
+          return typeof r === "string" ? (JSON.parse(r) as ActivityEntry) : (r as ActivityEntry);
+        } catch {
+          return null;
+        }
+      })
+      .filter((entry): entry is ActivityEntry => Boolean(entry && entry.at));
+  } catch {
+    return [];
+  }
 }
 
 export async function updateHeartbeat(email: string, location?: string) {
+  const redis = getRedis();
+  if (!redis) return;
+
   const update: Record<string, string> = {
     lastActive: new Date().toISOString(),
   };

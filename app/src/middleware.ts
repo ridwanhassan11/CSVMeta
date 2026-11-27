@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { redis } from "@/lib/redis";
+import { getRedis } from "@/lib/redis";
 import { isAdminEmail } from "@/lib/admin";
 
 const PING_COOKIE = "cm_last_ping";
-const PING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const PING_INTERVAL_MS = 5 * 60 * 1000;
 
 export default auth(async (req) => {
   const isLoggedIn = !!req.auth;
@@ -24,13 +24,14 @@ export default auth(async (req) => {
     return Response.redirect(new URL("/", req.nextUrl));
   }
 
-  if (isLoggedIn && email && !isAdmin) {
+  const redis = getRedis();
+
+  if (isLoggedIn && email && !isAdmin && redis) {
     try {
-      const [userRecord, siteSettings] = (await redis
-        .pipeline()
-        .hgetall(`user:${email}`)
-        .hgetall("site_settings")
-        .exec()) as [Record<string, string> | null, Record<string, string> | null];
+      const [userRecord, siteSettings] = (await Promise.all([
+        redis.hgetall(`user:${email}`),
+        redis.hgetall("site_settings"),
+      ])) as [Record<string, string> | null, Record<string, string> | null];
 
       const isBlocked = userRecord?.blocked === "true";
       const requireApproval = siteSettings?.requireApproval === "true";
@@ -54,8 +55,7 @@ export default auth(async (req) => {
 
   const response = NextResponse.next();
 
-  // লোকেশন ও লাস্ট-অ্যাক্টিভ ট্র্যাক করা, কুকি দিয়ে থ্রটল করা (প্রতি ৫ মিনিটে একবার)
-  if (isLoggedIn && email) {
+  if (isLoggedIn && email && redis) {
     const lastPing = req.cookies.get(PING_COOKIE)?.value;
     const now = Date.now();
     const shouldPing = !lastPing || now - Number(lastPing) > PING_INTERVAL_MS;

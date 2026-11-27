@@ -11,11 +11,14 @@ import {
   getUserActivity,
   type UserRecord,
   type ActivityEntry,
+  type RedisStatus,
 } from "./actions";
 
 function formatTime(iso?: string) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleString("bn-BD", {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("bn-BD", {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -23,7 +26,9 @@ function formatTime(iso?: string) {
 
 function formatRelative(iso?: string) {
   if (!iso) return "অজানা";
-  const diffSec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return "অজানা";
+  const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
   if (diffSec < 60) return "এইমাত্র";
   if (diffSec < 3600) return `${Math.floor(diffSec / 60)} মিনিট আগে`;
   if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} ঘণ্টা আগে`;
@@ -34,10 +39,12 @@ export default function AdminDashboard({
   initialUsers,
   initialActivity,
   initialRequireApproval,
+  redisStatus,
 }: {
   initialUsers: UserRecord[];
   initialActivity: ActivityEntry[];
   initialRequireApproval: boolean;
+  redisStatus: RedisStatus;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -47,6 +54,7 @@ export default function AdminDashboard({
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
   const [activityCache, setActivityCache] = useState<Record<string, ActivityEntry[]>>({});
   const [manualEmail, setManualEmail] = useState("");
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -84,47 +92,46 @@ export default function AdminDashboard({
     (u) => u.lastSignIn && new Date(u.lastSignIn).toDateString() === today
   ).length;
 
-  function handleToggleBlock(email: string, blocked: boolean) {
+  function runMutation(fn: () => Promise<void>) {
+    setActionError("");
     startTransition(async () => {
-      await toggleBlockUser(email, blocked);
-      router.refresh();
+      try {
+        await fn();
+        router.refresh();
+      } catch (err: unknown) {
+        setActionError(err instanceof Error ? err.message : "Action failed.");
+      }
     });
+  }
+
+  function handleToggleBlock(email: string, blocked: boolean) {
+    runMutation(() => toggleBlockUser(email, blocked));
   }
 
   function handleApproval(email: string, approved: boolean) {
-    startTransition(async () => {
-      await setUserApproval(email, approved);
-      router.refresh();
-    });
+    runMutation(() => setUserApproval(email, approved));
   }
 
   function handleApprovalMode(nextMode: boolean) {
-    startTransition(async () => {
-      await setApprovalMode(nextMode);
-      router.refresh();
-    });
+    runMutation(() => setApprovalMode(nextMode));
   }
 
   function handleManualAction(action: "approve" | "block") {
     const clean = manualEmail.trim().toLowerCase();
     if (!clean || !clean.includes("@")) return;
-    startTransition(async () => {
+    runMutation(async () => {
       if (action === "approve") {
         await setUserApproval(clean, true);
       } else {
         await toggleBlockUser(clean, true);
       }
       setManualEmail("");
-      router.refresh();
     });
   }
 
   function handleDelete(email: string) {
     if (!confirm(`${email} — এই ইউজারকে স্থায়ীভাবে ডিলিট করতে চান?`)) return;
-    startTransition(async () => {
-      await deleteUserAccount(email);
-      router.refresh();
-    });
+    runMutation(() => deleteUserAccount(email));
   }
 
   async function handleExpand(email: string) {
@@ -205,6 +212,24 @@ export default function AdminDashboard({
           </div>
         </div>
 
+        {!redisStatus.ok && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50/90 p-5 text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200">
+            <p className="font-semibold">ডাটাবেস (Upstash Redis) সংযুক্ত নেই বা কানেকশন ত্রুটি হয়েছে</p>
+            <p className="mt-1 text-xs leading-relaxed opacity-90">{redisStatus.error}</p>
+            <p className="mt-2 text-xs opacity-80">
+              URL পাওয়া গেছে: <b>{redisStatus.hasUrl ? "হ্যাঁ" : "না"}</b> · Token পাওয়া গেছে:{" "}
+              <b>{redisStatus.hasToken ? "হ্যাঁ" : "না"}</b> — Vercel Dashboard → Storage / Environment Variables-এ{" "}
+              <code>KV_REST_API_URL</code> ও <code>KV_REST_API_TOKEN</code> (অথবা Upstash Redis ইন্টিগ্রেশন) সেট করুন।
+            </p>
+          </div>
+        )}
+
+        {actionError && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+            {actionError}
+          </div>
+        )}
+
         {/* host access controls */}
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs dark:border-zinc-800 dark:bg-zinc-900">
@@ -217,9 +242,9 @@ export default function AdminDashboard({
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                disabled={isPending}
+                disabled={isPending || !redisStatus.ok}
                 onClick={() => handleApprovalMode(false)}
-                className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
+                className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition disabled:opacity-50 ${
                   !initialRequireApproval
                     ? "border-indigo-600 bg-indigo-600 text-white shadow-sm"
                     : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
@@ -232,9 +257,9 @@ export default function AdminDashboard({
               </button>
               <button
                 type="button"
-                disabled={isPending}
+                disabled={isPending || !redisStatus.ok}
                 onClick={() => handleApprovalMode(true)}
-                className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
+                className={`rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition disabled:opacity-50 ${
                   initialRequireApproval
                     ? "border-amber-600 bg-amber-600 text-white shadow-sm"
                     : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
@@ -265,7 +290,7 @@ export default function AdminDashboard({
               />
               <button
                 type="button"
-                disabled={isPending || !manualEmail.includes("@")}
+                disabled={isPending || !redisStatus.ok || !manualEmail.includes("@")}
                 onClick={() => handleManualAction("approve")}
                 className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
               >
@@ -273,7 +298,7 @@ export default function AdminDashboard({
               </button>
               <button
                 type="button"
-                disabled={isPending || !manualEmail.includes("@")}
+                disabled={isPending || !redisStatus.ok || !manualEmail.includes("@")}
                 onClick={() => handleManualAction("block")}
                 className="rounded-xl bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:opacity-40"
               >
@@ -421,7 +446,7 @@ export default function AdminDashboard({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
                       {!u.approved ? (
                         <button
                           type="button"

@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { updateHeartbeat } from "@/app/admin/actions";
 import { isAdminEmail } from "@/lib/admin";
-import { redis } from "@/lib/redis";
+import { getRedis } from "@/lib/redis";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -19,16 +19,16 @@ export async function POST(req: Request) {
 
   await updateHeartbeat(email, location || undefined);
 
-  if (isAdminEmail(email)) {
+  const redis = getRedis();
+  if (isAdminEmail(email) || !redis) {
     return NextResponse.json({ ok: true, blocked: false, pending: false });
   }
 
   try {
-    const [userRecord, siteSettings] = (await redis
-      .pipeline()
-      .hgetall(`user:${email}`)
-      .hgetall("site_settings")
-      .exec()) as [Record<string, string> | null, Record<string, string> | null];
+    const [userRecord, siteSettings] = (await Promise.all([
+      redis.hgetall(`user:${email}`),
+      redis.hgetall("site_settings"),
+    ])) as [Record<string, string> | null, Record<string, string> | null];
 
     const blocked = userRecord?.blocked === "true";
     const requireApproval = siteSettings?.requireApproval === "true";

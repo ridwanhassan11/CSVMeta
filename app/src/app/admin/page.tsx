@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { isAdminEmail } from "@/lib/admin";
-import { getAllUsers, getApprovalMode, getGlobalActivity } from "./actions";
+import { getAdminSnapshot } from "./actions";
 import AdminDashboard from "./AdminDashboard";
 
 export const dynamic = "force-dynamic";
@@ -17,17 +17,14 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, activity, requireApproval] = await Promise.all([
-    getAllUsers(),
-    getGlobalActivity(),
-    getApprovalMode(),
-  ]);
+  const snapshot = await getAdminSnapshot();
 
   return (
     <AdminDashboard
-      initialUsers={users}
-      initialActivity={activity}
-      initialRequireApproval={requireApproval}
+      initialUsers={snapshot.users}
+      initialActivity={snapshot.activity}
+      initialRequireApproval={snapshot.requireApproval}
+      redisStatus={snapshot.redisStatus}
     />
   );
 }
