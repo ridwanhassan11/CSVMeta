@@ -1,7 +1,10 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { isAdminEmail } from "@/lib/admin";
 import { getAllUsers, getGlobalActivity } from "./actions";
 import AdminDashboard from "./AdminDashboard";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -10,7 +13,9 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // middleware.ts ইতিমধ্যে নন-অ্যাডমিনদের এখানে ঢুকতে বাধা দিচ্ছে
+  if (!isAdminEmail(session.user.email)) {
+    redirect("/");
+  }
 
   const [users, activity] = await Promise.all([getAllUsers(), getGlobalActivity()]);
 

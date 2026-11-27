@@ -2,11 +2,22 @@
 
 import { Redis } from "@upstash/redis";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
+import { isAdminEmail } from "@/lib/admin";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
   token: process.env.KV_REST_API_TOKEN!,
 });
+
+const ONLINE_WINDOW_MS = 120_000;
+
+async function assertAdmin() {
+  const session = await auth();
+  if (!isAdminEmail(session?.user?.email)) {
+    throw new Error("Unauthorized");
+  }
+}
 
 export type UserRecord = {
   email: string;
@@ -16,6 +27,7 @@ export type UserRecord = {
   lastSignIn?: string;
   lastSignOut?: string;
   lastActive?: string;
+  signInCount: number;
   online: boolean;
   blocked: boolean;
 };
@@ -27,38 +39,49 @@ export type ActivityEntry = {
 };
 
 export async function getAllUsers(): Promise<UserRecord[]> {
+  await assertAdmin();
   const emails = (await redis.smembers("all_users")) as string[];
   if (!emails || emails.length === 0) return [];
 
+  const pipe = redis.pipeline();
+  for (const email of emails) {
+    pipe.hgetall(`user:${email}`);
+  }
+  const records = (await pipe.exec()) as Array<Record<string, string> | null>;
+
   const now = Date.now();
+  const users: UserRecord[] = emails.map((email, i) => {
+    const data = records[i];
+    const lastActiveTs = data?.lastActive ? new Date(data.lastActive).getTime() : 0;
+    const count = Number(data?.signInCount || 0);
+    return {
+      email,
+      name: data?.name || "",
+      image: data?.image || "",
+      location: data?.location || "",
+      lastSignIn: data?.lastSignIn,
+      lastSignOut: data?.lastSignOut,
+      lastActive: data?.lastActive,
+      signInCount: Number.isFinite(count) ? count : 0,
+      online: now - lastActiveTs < ONLINE_WINDOW_MS,
+      blocked: data?.blocked === "true",
+    };
+  });
 
-  const users = await Promise.all(
-    emails.map(async (email) => {
-      const data = (await redis.hgetall(`user:${email}`)) as Record<string, string> | null;
-      const lastActiveTs = data?.lastActive ? new Date(data.lastActive).getTime() : 0;
-      return {
-        email,
-        name: data?.name || "",
-        image: data?.image || "",
-        location: data?.location || "",
-        lastSignIn: data?.lastSignIn,
-        lastSignOut: data?.lastSignOut,
-        lastActive: data?.lastActive,
-        online: now - lastActiveTs < 60000,
-        blocked: data?.blocked === "true",
-      };
-    })
-  );
-
-  return users.sort((a, b) => (b.lastSignIn || "").localeCompare(a.lastSignIn || ""));
+  return users.sort((a, b) => {
+    if (a.online !== b.online) return a.online ? -1 : 1;
+    return (b.lastActive || b.lastSignIn || "").localeCompare(a.lastActive || a.lastSignIn || "");
+  });
 }
 
 export async function toggleBlockUser(email: string, blocked: boolean) {
+  await assertAdmin();
   await redis.hset(`user:${email}`, { blocked: blocked ? "true" : "false" });
   revalidatePath("/admin");
 }
 
 export async function deleteUserAccount(email: string) {
+  await assertAdmin();
   await redis.del(`user:${email}`);
   await redis.del(`activity:${email}`);
   await redis.srem("all_users", email);
@@ -66,6 +89,7 @@ export async function deleteUserAccount(email: string) {
 }
 
 export async function getUserActivity(email: string): Promise<ActivityEntry[]> {
+  await assertAdmin();
   const raw = (await redis.lrange(`activity:${email}`, 0, 49)) as Array<string | ActivityEntry>;
   return raw
     .map((r) => {
@@ -79,6 +103,7 @@ export async function getUserActivity(email: string): Promise<ActivityEntry[]> {
 }
 
 export async function getGlobalActivity(): Promise<ActivityEntry[]> {
+  await assertAdmin();
   const raw = (await redis.lrange("activity_log", 0, 99)) as Array<string | ActivityEntry>;
   return raw
     .map((r) => {

@@ -1,4 +1,6 @@
 "use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTheme } from "../hooks/useTheme";
 import { signOut } from "next-auth/react";
 
@@ -46,6 +48,30 @@ export default function Sidebar({
 }) {
   const items: NavItem[] = ["Generate", "Metadata", "History", "Templates", "Settings"];
   const { theme, toggleTheme } = useTheme();
+  const [adminInfo, setAdminInfo] = useState<{ isAdmin: boolean; onlineNow?: number }>({
+    isAdmin: false,
+  });
+
+  useEffect(() => {
+    let activeMount = true;
+    async function loadAdminStatus() {
+      try {
+        const res = await fetch("/api/admin/status");
+        if (!res.ok) return;
+        const data = (await res.json()) as { isAdmin?: boolean; onlineNow?: number };
+        if (activeMount && data.isAdmin) {
+          setAdminInfo({ isAdmin: true, onlineNow: data.onlineNow });
+        }
+      } catch {}
+    }
+    void loadAdminStatus();
+    const timer = setInterval(loadAdminStatus, 60_000);
+    return () => {
+      activeMount = false;
+      clearInterval(timer);
+    };
+  }, []);
+
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
   return (
@@ -80,6 +106,23 @@ export default function Sidebar({
             {item}
           </button>
         ))}
+
+        {adminInfo.isAdmin && (
+          <Link
+            href="/admin"
+            className="mt-2 flex w-full items-center justify-between rounded-xl border border-indigo-200/80 bg-indigo-50/70 px-3 py-2.5 text-[13px] font-semibold text-indigo-700 transition hover:bg-indigo-100/80 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-950/70"
+          >
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Admin Monitor
+            </span>
+            {typeof adminInfo.onlineNow === "number" && (
+              <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-emerald-700 shadow-2xs dark:bg-zinc-900 dark:text-emerald-400">
+                {adminInfo.onlineNow}
+              </span>
+            )}
+          </Link>
+        )}
       </nav>
 
       <div className="mt-auto space-y-2.5">

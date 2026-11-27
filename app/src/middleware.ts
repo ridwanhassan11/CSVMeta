@@ -1,16 +1,12 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
+import { isAdminEmail } from "@/lib/admin";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
   token: process.env.KV_REST_API_TOKEN!,
 });
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
 
 const PING_COOKIE = "cm_last_ping";
 const PING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -25,8 +21,7 @@ export default auth(async (req) => {
   }
 
   if (isAdminRoute) {
-    const email = req.auth?.user?.email?.toLowerCase().trim();
-    if (!email || !ADMIN_EMAILS.includes(email)) {
+    if (!isAdminEmail(req.auth?.user?.email)) {
       return Response.redirect(new URL("/", req.nextUrl));
     }
   }

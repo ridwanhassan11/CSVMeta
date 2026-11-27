@@ -49,7 +49,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name || "",
           image: user.image || "",
           lastSignIn: new Date().toISOString(),
+          lastActive: new Date().toISOString(),
         });
+        await redis.hincrby(`user:${user.email}`, "signInCount", 1);
         await redis.sadd("all_users", user.email);
         await logActivity(user.email, "signin");
       } catch (err) {
