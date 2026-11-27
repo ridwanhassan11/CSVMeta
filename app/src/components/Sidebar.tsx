@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "../hooks/useTheme";
 import { signOut } from "next-auth/react";
@@ -72,9 +73,13 @@ export default function Sidebar({
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col border-r border-slate-200/80 bg-white px-3.5 py-5 md:flex dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center gap-3 px-1.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-lg font-black text-white shadow-sm shadow-indigo-600/25">
-          ◈
-        </div>
+        <Image
+          src="/easymeta-logo.png"
+          alt="EasyMeta"
+          width={36}
+          height={36}
+          className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-sm shadow-indigo-600/25"
+        />
         <div>
           <div className="text-[16px] font-bold tracking-tight text-slate-900 dark:text-white">
             EasyMeta

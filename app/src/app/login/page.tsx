@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { signIn } from "@/auth";
 
 const CAPABILITIES = [
@@ -103,9 +104,13 @@ export default function LoginPage() {
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-base font-medium text-white shadow-sm shadow-indigo-600/20">
-              ◈
-            </span>
+            <Image
+              src="/easymeta-logo.png"
+              alt="EasyMeta"
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-sm shadow-indigo-600/20"
+            />
             <div className="flex items-center gap-2.5">
               <span className="text-base font-semibold tracking-tight text-slate-900">
                 EasyMeta
@@ -191,9 +196,13 @@ export default function LoginPage() {
           {/* Sign-in Card */}
           <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-lg shadow-slate-200/60 sm:p-8">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-base font-medium text-indigo-600">
-                ◈
-              </span>
+              <Image
+                src="/easymeta-logo.png"
+                alt="EasyMeta"
+                width={40}
+                height={40}
+                className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-sm shadow-indigo-600/20"
+              />
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
                   Open EasyMeta Workspace

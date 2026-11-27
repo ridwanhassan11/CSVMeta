@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Sidebar, { type NavItem } from "@/components/Sidebar";
 import ControlsPanel from "@/components/ControlsPanel";
 import ApiKeyModal from "@/components/ApiKeyModal";
@@ -746,9 +747,15 @@ export default function HomePage() {
       <main className="min-h-screen md:ml-[220px]">
         <div className="mx-auto max-w-[1600px]">
           <header className="sticky top-0 z-20 flex h-[52px] items-center justify-between border-b border-slate-200/80 bg-white/85 px-5 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/85">
-            <h1 className="text-[16px] font-bold tracking-tight">
-              <span className="mr-2 text-indigo-600 dark:text-indigo-400">◈</span>
-              {activeTab === "Generate" ? "Generate Metadata" : activeTab}
+            <h1 className="flex items-center gap-2.5 text-[16px] font-bold tracking-tight">
+              <Image
+                src="/easymeta-logo.png"
+                alt="EasyMeta"
+                width={24}
+                height={24}
+                className="h-6 w-6 shrink-0 rounded-lg object-cover shadow-xs"
+              />
+              <span>{activeTab === "Generate" ? "Generate Metadata" : activeTab}</span>
             </h1>
 
             <div className="flex items-center gap-1.5 md:hidden">

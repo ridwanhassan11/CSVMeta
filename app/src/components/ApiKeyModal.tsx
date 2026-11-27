@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import type { ReactElement } from "react";
 import {
@@ -188,9 +189,13 @@ export default function ApiKeyModal({
         {/* Top Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/70 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-950/60">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-sm font-bold text-white shadow-sm shadow-indigo-600/20">
-              ◈
-            </span>
+            <Image
+              src="/easymeta-logo.png"
+              alt="EasyMeta"
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-sm shadow-indigo-600/20"
+            />
             <div>
               <h2 className="text-base font-bold tracking-tight">EasyMeta AI Engine &amp; Keys</h2>
               <p className="text-xs text-slate-500 dark:text-zinc-400">
