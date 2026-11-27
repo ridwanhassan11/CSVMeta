@@ -10,16 +10,25 @@ function cleanEnvValue(value?: string) {
 }
 
 export function getRedisConfigStatus() {
-  const rawUrl = cleanEnvValue(
-    process.env.KV_REST_API_URL ||
-      process.env.UPSTASH_REDIS_REST_URL ||
-      process.env.KV_URL ||
-      process.env.REDIS_URL
-  );
+  const upstashUrl = cleanEnvValue(process.env.UPSTASH_REDIS_REST_URL);
+  const upstashToken = cleanEnvValue(process.env.UPSTASH_REDIS_REST_TOKEN);
+  const kvUrl = cleanEnvValue(process.env.KV_REST_API_URL);
+  const kvToken = cleanEnvValue(process.env.KV_REST_API_TOKEN);
+  const fallbackUrl = cleanEnvValue(process.env.KV_URL || process.env.REDIS_URL);
+
+  let rawUrl = "";
+  let token = "";
+  if (upstashUrl && upstashToken) {
+    rawUrl = upstashUrl;
+    token = upstashToken;
+  } else if (kvUrl || kvToken) {
+    rawUrl = kvUrl;
+    token = kvToken;
+  } else {
+    rawUrl = fallbackUrl;
+  }
+
   let url = rawUrl;
-  let token = cleanEnvValue(
-    process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
-  );
   let host = "";
   let protocol = "";
 
@@ -28,7 +37,6 @@ export function getRedisConfigStatus() {
       const parsed = new URL(rawUrl);
       protocol = parsed.protocol;
       host = parsed.hostname;
-      // If a redis:// or rediss:// TCP URL was provided, map to Upstash HTTPS REST endpoint
       if ((parsed.protocol === "redis:" || parsed.protocol === "rediss:") && parsed.hostname) {
         url = `https://${parsed.hostname}`;
         protocol = "https:";
