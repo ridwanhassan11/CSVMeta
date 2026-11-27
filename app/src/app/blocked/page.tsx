@@ -1,10 +1,12 @@
 import { auth, signOut } from "@/auth";
 import Link from "next/link";
+import { recordUserSignOut } from "@/lib/userTracking";
 
 export const dynamic = "force-dynamic";
 
 export default async function BlockedPage() {
   const session = await auth();
+  const userEmail = session?.user?.email;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-slate-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -14,9 +16,9 @@ export default async function BlockedPage() {
         </div>
         <h1 className="mt-4 text-xl font-semibold">অ্যাক্সেস সীমাবদ্ধ করা হয়েছে</h1>
         <p className="mt-2.5 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
-          {session?.user?.email ? (
+          {userEmail ? (
             <>
-              আপনার অ্যাকাউন্ট (<span className="font-medium text-slate-900 dark:text-white">{session.user.email}</span>) হোস্ট/অ্যাডমিন দ্বারা ব্লক করা হয়েছে।
+              আপনার অ্যাকাউন্ট (<span className="font-medium text-slate-900 dark:text-white">{userEmail}</span>) হোস্ট/অ্যাডমিন দ্বারা ব্লক করা হয়েছে।
             </>
           ) : (
             "এই অ্যাকাউন্টটি বর্তমানে সাইটের অ্যাডমিন দ্বারা ব্লক করা আছে।"
@@ -24,10 +26,11 @@ export default async function BlockedPage() {
         </p>
 
         <div className="mt-6 flex flex-col gap-2.5">
-          {session?.user?.email ? (
+          {userEmail ? (
             <form
               action={async () => {
                 "use server";
+                await recordUserSignOut(userEmail);
                 await signOut({ redirectTo: "/login" });
               }}
             >

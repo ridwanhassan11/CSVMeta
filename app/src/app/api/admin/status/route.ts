@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/admin";
 import { getAllUsers } from "@/app/admin/actions";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await auth();
   const email = session?.user?.email;

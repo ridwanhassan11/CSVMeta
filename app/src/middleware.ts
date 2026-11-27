@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { getRedis } from "@/lib/redis";
 import { isAdminEmail } from "@/lib/admin";
+import { normalizeEmail } from "@/lib/userTracking";
 
 const PING_COOKIE = "cm_last_ping";
 const PING_INTERVAL_MS = 5 * 60 * 1000;
@@ -17,7 +18,7 @@ export default auth(async (req) => {
     return Response.redirect(new URL("/login", req.nextUrl));
   }
 
-  const email = req.auth?.user?.email?.trim();
+  const email = normalizeEmail(req.auth?.user?.email);
   const isAdmin = isAdminEmail(email);
 
   if (isAdminRoute && !isAdmin) {
@@ -67,7 +68,9 @@ export default auth(async (req) => {
       const region = req.headers.get("x-vercel-ip-country-region") || "";
 
       try {
+        await redis.sadd("all_users", email);
         await redis.hset(`user:${email}`, {
+          email,
           lastActive: new Date(now).toISOString(),
           country,
           city,

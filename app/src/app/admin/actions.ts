@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/admin";
 import { getRedis, getRedisConfigStatus } from "@/lib/redis";
+import { normalizeEmail } from "@/lib/userTracking";
 
 const ONLINE_WINDOW_MS = 120_000;
 
@@ -23,6 +24,7 @@ export type UserRecord = {
   lastSignOut?: string;
   lastActive?: string;
   signInCount: number;
+  signedIn: boolean;
   online: boolean;
   blocked: boolean;
   approved: boolean;
@@ -89,29 +91,50 @@ export async function getAllUsers(): Promise<UserRecord[]> {
   if (!redis) return [];
 
   const rawEmails = await redis.smembers("all_users");
-  const emails = Array.isArray(rawEmails)
-    ? rawEmails.map((e) => String(e || "").trim()).filter(Boolean)
-    : [];
-  if (emails.length === 0) return [];
+  const uniqueEmails = Array.from(
+    new Set(
+      (Array.isArray(rawEmails) ? rawEmails : [])
+        .map((e) => normalizeEmail(String(e || "")))
+        .filter(Boolean)
+    )
+  );
+  if (uniqueEmails.length === 0) return [];
 
-  const records = await fetchUserRecords(emails);
+  const records = await fetchUserRecords(uniqueEmails);
   const now = Date.now();
 
-  const users: UserRecord[] = emails.map((email, i) => {
+  const users: UserRecord[] = uniqueEmails.map((email, i) => {
     const data = records[i];
     const lastActiveStr = typeof data?.lastActive === "string" ? data.lastActive : undefined;
+    const lastSignInStr = typeof data?.lastSignIn === "string" ? data.lastSignIn : undefined;
+    const lastSignOutStr = typeof data?.lastSignOut === "string" ? data.lastSignOut : undefined;
+
     const lastActiveMs = lastActiveStr ? new Date(lastActiveStr).getTime() : NaN;
+    const lastSignInMs = lastSignInStr ? new Date(lastSignInStr).getTime() : NaN;
+    const lastSignOutMs = lastSignOutStr ? new Date(lastSignOutStr).getTime() : NaN;
+
+    const explicitlySignedOut = String(data?.isSignedIn || "") === "false";
+    const signedOutAfterLastActivity =
+      Number.isFinite(lastSignOutMs) &&
+      (!Number.isFinite(lastActiveMs) || lastSignOutMs >= lastActiveMs) &&
+      (!Number.isFinite(lastSignInMs) || lastSignOutMs >= lastSignInMs);
+
+    const signedIn = !explicitlySignedOut && !signedOutAfterLastActivity && Boolean(lastSignInStr || lastActiveStr);
+    const online =
+      signedIn && Number.isFinite(lastActiveMs) && now - lastActiveMs < ONLINE_WINDOW_MS;
+
     const count = Number(data?.signInCount || 0);
     return {
       email,
       name: typeof data?.name === "string" ? data.name : "",
       image: typeof data?.image === "string" ? data.image : "",
       location: typeof data?.location === "string" ? data.location : "",
-      lastSignIn: typeof data?.lastSignIn === "string" ? data.lastSignIn : undefined,
-      lastSignOut: typeof data?.lastSignOut === "string" ? data.lastSignOut : undefined,
+      lastSignIn: lastSignInStr,
+      lastSignOut: lastSignOutStr,
       lastActive: lastActiveStr,
       signInCount: Number.isFinite(count) ? count : 0,
-      online: Number.isFinite(lastActiveMs) && now - lastActiveMs < ONLINE_WINDOW_MS,
+      signedIn,
+      online,
       blocked: String(data?.blocked || "") === "true",
       approved: String(data?.approved || "") !== "false",
     };
@@ -119,7 +142,10 @@ export async function getAllUsers(): Promise<UserRecord[]> {
 
   return users.sort((a, b) => {
     if (a.online !== b.online) return a.online ? -1 : 1;
-    return (b.lastActive || b.lastSignIn || "").localeCompare(a.lastActive || a.lastSignIn || "");
+    if (a.signedIn !== b.signedIn) return a.signedIn ? -1 : 1;
+    return (b.lastActive || b.lastSignIn || b.lastSignOut || "").localeCompare(
+      a.lastActive || a.lastSignIn || a.lastSignOut || ""
+    );
   });
 }
 
@@ -245,7 +271,7 @@ export async function toggleBlockUser(email: string, blocked: boolean) {
   const redis = getRedis();
   if (!redis) throw new Error("Redis is not configured in Vercel environment variables.");
 
-  const cleanEmail = email.trim().toLowerCase();
+  const cleanEmail = normalizeEmail(email);
   if (!cleanEmail) return;
   await redis.sadd("all_users", cleanEmail);
   await redis.hset(`user:${cleanEmail}`, {
@@ -260,7 +286,7 @@ export async function setUserApproval(email: string, approved: boolean) {
   const redis = getRedis();
   if (!redis) throw new Error("Redis is not configured in Vercel environment variables.");
 
-  const cleanEmail = email.trim().toLowerCase();
+  const cleanEmail = normalizeEmail(email);
   if (!cleanEmail) return;
   await redis.sadd("all_users", cleanEmail);
   await redis.hset(`user:${cleanEmail}`, {
@@ -276,19 +302,22 @@ export async function deleteUserAccount(email: string) {
   const redis = getRedis();
   if (!redis) throw new Error("Redis is not configured in Vercel environment variables.");
 
-  await redis.del(`user:${email}`);
-  await redis.del(`activity:${email}`);
-  await redis.srem("all_users", email);
+  const cleanEmail = normalizeEmail(email);
+  if (!cleanEmail) return;
+  await redis.del(`user:${cleanEmail}`);
+  await redis.del(`activity:${cleanEmail}`);
+  await redis.srem("all_users", cleanEmail);
   revalidatePath("/admin");
 }
 
 export async function getUserActivity(email: string): Promise<ActivityEntry[]> {
   await assertAdmin();
   const redis = getRedis();
-  if (!redis) return [];
+  const cleanEmail = normalizeEmail(email);
+  if (!redis || !cleanEmail) return [];
 
   try {
-    const raw = await redis.lrange(`activity:${email}`, 0, 49);
+    const raw = await redis.lrange(`activity:${cleanEmail}`, 0, 49);
     if (!Array.isArray(raw)) return [];
     return raw
       .map((r) => {
@@ -301,21 +330,5 @@ export async function getUserActivity(email: string): Promise<ActivityEntry[]> {
       .filter((entry): entry is ActivityEntry => Boolean(entry && entry.at));
   } catch {
     return [];
-  }
-}
-
-export async function updateHeartbeat(email: string, location?: string) {
-  const redis = getRedis();
-  if (!redis) return;
-
-  const update: Record<string, string> = {
-    lastActive: new Date().toISOString(),
-  };
-  if (location) update.location = location;
-
-  try {
-    await redis.hset(`user:${email}`, update);
-  } catch (err) {
-    console.error("heartbeat update failed:", err);
   }
 }

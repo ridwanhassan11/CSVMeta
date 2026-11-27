@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
+import { recordUserSignOut } from "@/lib/userTracking";
 
 export const dynamic = "force-dynamic";
 
 export default async function PendingPage() {
   const session = await auth();
-  if (!session?.user?.email) {
+  const userEmail = session?.user?.email;
+  if (!userEmail) {
     redirect("/login");
   }
 
@@ -18,7 +20,7 @@ export default async function PendingPage() {
         </div>
         <h1 className="mt-4 text-xl font-semibold">অ্যাক্সেসের অনুমতির অপেক্ষায়</h1>
         <p className="mt-2.5 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
-          আপনার অ্যাকাউন্ট (<span className="font-medium text-indigo-600 dark:text-indigo-400">{session.user.email}</span>) লগইন হয়েছে, তবে এই সাইটটি ব্যবহার করতে হোস্ট/অ্যাডমিনের অনুমতি প্রয়োজন। অনুমতি পাওয়ার পর নিচের বাটনে ক্লিক করুন।
+          আপনার অ্যাকাউন্ট (<span className="font-medium text-indigo-600 dark:text-indigo-400">{userEmail}</span>) লগইন হয়েছে, তবে এই সাইটটি ব্যবহার করতে হোস্ট/অ্যাডমিনের অনুমতি প্রয়োজন। অনুমতি পাওয়ার পর নিচের বাটনে ক্লিক করুন।
         </p>
 
         <div className="mt-6 flex flex-col gap-2.5">
@@ -31,6 +33,7 @@ export default async function PendingPage() {
           <form
             action={async () => {
               "use server";
+              await recordUserSignOut(userEmail);
               await signOut({ redirectTo: "/login" });
             }}
           >

@@ -59,9 +59,14 @@ export default function AdminDashboard({
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
-    }, 15_000);
+      if (expandedEmail) {
+        void getUserActivity(expandedEmail).then((data) =>
+          setActivityCache((prev) => ({ ...prev, [expandedEmail]: data }))
+        );
+      }
+    }, 8_000);
     return () => clearInterval(interval);
-  }, [router]);
+  }, [router, expandedEmail]);
 
   const users = initialUsers.filter((u) => {
     const q = search.trim().toLowerCase();
@@ -140,21 +145,20 @@ export default function AdminDashboard({
       return;
     }
     setExpandedEmail(email);
-    if (!activityCache[email]) {
-      const data = await getUserActivity(email);
-      setActivityCache((prev) => ({ ...prev, [email]: data }));
-    }
+    const data = await getUserActivity(email);
+    setActivityCache((prev) => ({ ...prev, [email]: data }));
   }
 
   function exportCSV() {
     const esc = (s: string) => `"${(s || "").replace(/"/g, '""')}"`;
     const header =
-      "Name,Email,Location,Online,Approved,Blocked,Sign Ins,Last Active,Last Sign In,Last Sign Out";
+      "Name,Email,Location,Session Status,Online,Approved,Blocked,Sign Ins,Last Active,Last Sign In,Last Sign Out";
     const rows = initialUsers.map((u) =>
       [
         esc(u.name),
         esc(u.email),
         esc(u.location || ""),
+        u.online ? "Online" : u.signedIn ? "Signed In (Idle)" : "Signed Out",
         u.online ? "Yes" : "No",
         u.approved ? "Yes" : "No",
         u.blocked ? "Yes" : "No",
@@ -189,7 +193,7 @@ export default function AdminDashboard({
                 Admin Live Monitor
               </h1>
               <p className="text-xs text-slate-500 sm:text-sm dark:text-zinc-400">
-                কে লগইন করছে, কতজন অনলাইনে আছে, অনুমতি ও ব্লক কন্ট্রোল (প্রতি ১৫ সেকেন্ডে আপডেট হয়)
+                কে সাইন ইন/আউট করছে, কতজন অনলাইনে আছে, অনুমতি ও ব্লক কন্ট্রোল (প্রতি ৮ সেকেন্ডে আপডেট হয়)
               </p>
             </div>
           </div>
@@ -197,7 +201,14 @@ export default function AdminDashboard({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => router.refresh()}
+              onClick={() => {
+                router.refresh();
+                if (expandedEmail) {
+                  void getUserActivity(expandedEmail).then((data) =>
+                    setActivityCache((prev) => ({ ...prev, [expandedEmail]: data }))
+                  );
+                }
+              }}
               className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
             >
               ↻ Refresh
@@ -430,9 +441,13 @@ export default function AdminDashboard({
                           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                             ● Online
                           </span>
+                        ) : u.signedIn ? (
+                          <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                            Signed In · {formatRelative(u.lastActive || u.lastSignIn)}
+                          </span>
                         ) : (
-                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-zinc-800 dark:text-zinc-400">
-                            {formatRelative(u.lastActive || u.lastSignIn)}
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-zinc-800 dark:text-zinc-300">
+                            Signed Out · {formatRelative(u.lastSignOut || u.lastActive || u.lastSignIn)}
                           </span>
                         )}
                         {!u.approved && !u.blocked && (

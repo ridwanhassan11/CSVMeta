@@ -167,7 +167,10 @@ export default function Sidebar({
 
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={async () => {
+            await fetch("/api/auth/signout-log", { method: "POST" }).catch(() => {});
+            await signOut({ callbackUrl: "/login" });
+          }}
           className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-xs font-medium text-rose-600 transition hover:border-rose-200 hover:bg-rose-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-rose-400 dark:hover:bg-rose-950/30"
         >
           Log out
